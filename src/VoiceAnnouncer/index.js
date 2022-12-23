@@ -22,14 +22,6 @@ module.exports = (Plugin, Library) => {
     }
 
     playAudioClip(src) {
-      if (
-        DiscordModules.StreamerModeStore.getSettings().enabled &&
-        DiscordModules.StreamerModeStore.getSettings().disableSounds &&
-        this.settings.audioSettings.respectDisableAllSoundsStreamerMode
-      ) {
-        return;
-      }
-
       const audio = new Audio(src);
       audio.volume = this.settings.audioSettings.voiceNotificationVolume;
       audio.play();
@@ -40,6 +32,14 @@ module.exports = (Plugin, Library) => {
         : voices.maleUs3;
     }
     checkMuteStatusListenerHandler() {
+      if (
+        this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
+        DiscordModules.StreamerModeStore.getSettings().enabled &&
+        DiscordModules.StreamerModeStore.getSettings().disableSounds
+      ) {
+        return;
+      }
+
       if (DiscordModules.MediaInfo.isSelfMute()) {
         this.playAudioClip(getSelectedSpeakerVoice().muted);
       } else {
