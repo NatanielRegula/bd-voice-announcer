@@ -1,0 +1,14 @@
+lockfileVersion: 5.4
+
+specifiers:
+  zerespluginlibrary: ^2.0.6
+
+dependencies:
+  zerespluginlibrary: 2.0.6
+
+packages:
+
+  /zerespluginlibrary/2.0.6:
+    resolution: {integrity: sha512-xFJGAKWWHVhCPCX6Qq1tsVJzOzTHRF7xnz2bu+3DKGaXsNCP7hPxy0LJ3mXtHLeSlH3v9ARZ0kzDs4cj5bCVnw==}
+    hasBin: true
+    dev: false
