@@ -8,9 +8,9 @@
     "version": "0.0.4",
     "description": "When the user switches between muted and unmuted the plugin will announce the currently set mode via audio notification.",
     "website": "",
-    "source": "https://github.com/",
+    "source": "https://github.com/NatanielRegula/bd-voice-announcer",
     "patreon": "",
-    "donate": "",
+    "donate": "paypal.me/NatanielRegula",
     "invite": "",
     "changelog": [
         {
