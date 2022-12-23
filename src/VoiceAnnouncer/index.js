@@ -35,7 +35,7 @@ module.exports = (Plugin, Library) => {
 
     getSelectedSpeakerVoice(overrideVoiceId) {
       const selectedVoiceId =
-        overrideVoiceId ?? this.settings.audioSettings.speakerVoice;
+        overrideVoiceId ?? this.settings.audioSettings.speakerVoice ?? 0;
       const voiceWithSelectedId = voices.filter(
         (voice) => voice.id == selectedVoiceId
       );
@@ -88,7 +88,7 @@ module.exports = (Plugin, Library) => {
           id: 'speakerVoice',
           name: 'Voice',
           note: 'Change the voice of the announcer.',
-          value: 0,
+          value: this.settings.audioSettings.speakerVoice ?? 0,
           options: voices.map((voice) => {
             return { label: voice.label, value: voice.id };
           }),
@@ -100,6 +100,7 @@ module.exports = (Plugin, Library) => {
           },
         })
       );
+
       return settingsPanel.getElement();
     }
 
