@@ -44,9 +44,9 @@ module.exports = (Plugin, Library) => {
       }
 
       if (DiscordModules.MediaInfo.isSelfMute()) {
-        this.playAudioClip(getSelectedSpeakerVoice().muted);
+        this.playAudioClip(this.getSelectedSpeakerVoice().muted);
       } else {
-        this.playAudioClip(getSelectedSpeakerVoice().unmuted);
+        this.playAudioClip(this.getSelectedSpeakerVoice().unmuted);
       }
     }
 
