@@ -7,6 +7,7 @@
 
 module.exports = (Plugin, Library) => {
   const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
+
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
 
   const voices = JSON.parse(require('voices.json'));
@@ -30,7 +31,6 @@ module.exports = (Plugin, Library) => {
       }
 
       const audio = new Audio(src);
-      audio.crossOrigin = 'anonymous';
       audio.volume = this.settings.audioSettings.voiceNotificationVolume;
       audio.play();
     }
