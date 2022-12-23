@@ -11,6 +11,7 @@ module.exports = (Plugin, Library) => {
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
 
   const voices = JSON.parse(require('voices.json'));
+  const audioPlayer = new Audio();
 
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
@@ -22,9 +23,11 @@ module.exports = (Plugin, Library) => {
     }
 
     playAudioClip(src) {
-      const audio = new Audio(src);
-      audio.volume = this.settings.audioSettings.voiceNotificationVolume;
-      audio.play();
+      audioPlayer.src = src;
+      audioPlayer.currentTime = 0;
+      audioPlayer.volume = this.settings.audioSettings.voiceNotificationVolume;
+
+      audioPlayer.play();
     }
     getSelectedSpeakerVoice() {
       return this.settings.audioSettings.useFemaleVoice
@@ -66,6 +69,7 @@ module.exports = (Plugin, Library) => {
         'AUDIO_TOGGLE_SELF_MUTE',
         this.checkMuteStatusListenerHandler
       );
+      audioPlayer.remove();
     }
   };
 };
