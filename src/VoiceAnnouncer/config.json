@@ -14,9 +14,13 @@
     "invite": "",
     "changelog": [
         {
-            "title":"Bug Fixes",
-            "type":"fixed",
-            "items":["0.0.2: Added a streamer mode respecting setting.", "0.0.3: Changed male voice.", "0.0.4: Added an option to use female voice."]
+            "title": "Bug Fixes",
+            "type": "fixed",
+            "items": [
+                "0.0.2: Added a streamer mode respecting setting.",
+                "0.0.3: Changed male voice.",
+                "0.0.4: Added an option to use female voice."
+            ]
         }
     ],
     "defaultConfig": [
@@ -32,20 +36,13 @@
                     "name": "Voice notification volume",
                     "note": "Adjust the volume of the audio notifications.",
                     "value": 0.5,
-                    "max":1
+                    "max": 1
                 },
                 {
                     "type": "switch",
                     "id": "respectDisableAllSoundsStreamerMode",
                     "name": "Respect Streamer Mode's disable sounds setting",
                     "note": "If enabled VoiceMutedAnnouncer will only make an announcement if \"Streamer Mode\" is disabled or if \"Disable sounds\" is set to false in \"Streamer Mode\" settings.",
-                    "value": false
-                },
-                {
-                    "type": "switch",
-                    "id": "useFemaleVoice",
-                    "name": "Use female voice",
-                    "note": "If enabled female voice is used for the announcements.",
                     "value": false
                 }
             ]

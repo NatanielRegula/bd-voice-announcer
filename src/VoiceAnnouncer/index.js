@@ -6,11 +6,14 @@
  */
 
 module.exports = (Plugin, Library) => {
-  const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
+  const { Logger, Utilities, WebpackModules, DiscordModules, Settings } =
+    Library;
 
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
 
-  const voices = JSON.parse(require('voices.json'));
+  const voicesJson = JSON.parse(require('voices.json'));
+  const voices = [...voicesJson.female, ...voicesJson.male];
+  // console.log(voices);
 
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
@@ -29,11 +32,29 @@ module.exports = (Plugin, Library) => {
 
       audioPlayer.play().then(() => audioPlayer.remove());
     }
-    getSelectedSpeakerVoice() {
-      return this.settings.audioSettings.useFemaleVoice
-        ? voices.femaleUs2
-        : voices.maleUs3;
+
+    getSelectedSpeakerVoice(overrideVoiceId) {
+      const selectedVoiceId =
+        overrideVoiceId ?? this.settings.audioSettings.speakerVoice;
+      const voiceWithSelectedId = voices.filter(
+        (voice) => voice.id == selectedVoiceId
+      );
+
+      if (voiceWithSelectedId.length > 1) {
+        Logger.error(
+          'Two or more voices have the same id! This is not allowed. Fallback voice is being used!'
+        );
+        return voices[0];
+      }
+      if (voiceWithSelectedId.length < 1) {
+        Logger.error(
+          'Voice with selected ID could not be found. Fallback voice is being used!'
+        );
+        return voices[0];
+      }
+      return voiceWithSelectedId[0];
     }
+
     checkMuteStatusListenerHandler() {
       if (
         this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
@@ -44,9 +65,9 @@ module.exports = (Plugin, Library) => {
       }
 
       if (DiscordModules.MediaInfo.isSelfMute()) {
-        this.playAudioClip(this.getSelectedSpeakerVoice().muted);
+        this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.muted);
       } else {
-        this.playAudioClip(this.getSelectedSpeakerVoice().unmuted);
+        this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.unmuted);
       }
     }
 
@@ -60,7 +81,26 @@ module.exports = (Plugin, Library) => {
     }
 
     getSettingsPanel() {
-      return this.buildSettingsPanel().getElement();
+      const settingsPanel = this.buildSettingsPanel();
+      settingsPanel.append(
+        this.buildSetting({
+          type: 'dropdown',
+          id: 'speakerVoice',
+          name: 'Voice',
+          note: 'Change the voice of the announcer.',
+          value: 0,
+          options: voices.map((voice) => {
+            return { label: voice.label, value: voice.id };
+          }),
+          onChange: (value) => {
+            this.playAudioClip(
+              this.getSelectedSpeakerVoice(value).audioClips.muted
+            );
+            this.settings.audioSettings['speakerVoice'] = value;
+          },
+        })
+      );
+      return settingsPanel.getElement();
     }
 
     onStop() {
