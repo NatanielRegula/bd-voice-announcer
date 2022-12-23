@@ -5,7 +5,7 @@
     "author": "NR",
     "authorId": "",
     "authorLink": "",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "description": "When the user switches between muted and unmuted the plugin will announce the currently set mode via audio notification.",
     "website": "",
     "source": "https://github.com/NatanielRegula/bd-voice-announcer",
@@ -14,12 +14,31 @@
     "invite": "",
     "changelog": [
         {
-            "title": "Bug Fixes",
-            "type": "fixed",
+            "title": "0.0.5",
+            "type": "improved",
             "items": [
-                "0.0.2: Added a streamer mode respecting setting.",
-                "0.0.3: Changed male voice.",
-                "0.0.4: Added an option to use female voice."
+                "Changed how the voice setting works, now there is a dropdown selector with the list of voices."
+            ]
+        },
+        {
+            "title": "0.0.4",
+            "type": "improved",
+            "items": [
+                "Added an option to use female voice."
+            ]
+        },
+        {
+            "title": "0.0.3",
+            "type": "improved",
+            "items": [
+                "Changed male voice."
+            ]
+        },
+        {
+            "title": "0.0.2",
+            "type": "improved",
+            "items": [
+                "Added a streamer mode respecting setting."
             ]
         }
     ],
