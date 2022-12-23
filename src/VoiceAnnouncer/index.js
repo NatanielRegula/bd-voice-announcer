@@ -15,6 +15,7 @@ module.exports = (Plugin, Library) => {
     constructor() {
       super();
       this.playAudioClip = this.playAudioClip.bind(this);
+      this.getSelectedSpeakerVoice = this.getSelectedSpeakerVoice.bind(this);
       this.checkMuteStatusListenerHandler =
         this.checkMuteStatusListenerHandler.bind(this);
     }
@@ -33,19 +34,16 @@ module.exports = (Plugin, Library) => {
       audio.volume = this.settings.audioSettings.voiceNotificationVolume;
       audio.play();
     }
+    getSelectedSpeakerVoice() {
+      return this.settings.audioSettings.useFemaleVoice
+        ? voices.femaleUs2
+        : voices.maleUs3;
+    }
     checkMuteStatusListenerHandler() {
       if (DiscordModules.MediaInfo.isSelfMute()) {
-        this.playAudioClip(
-          this.settings.audioSettings.useFemaleVoice
-            ? voices.femaleUs2.muted
-            : voices.maleUs3.muted
-        );
+        this.playAudioClip(getSelectedSpeakerVoice().muted);
       } else {
-        this.playAudioClip(
-          this.settings.audioSettings.useFemaleVoice
-            ? voices.femaleUs2.unmuted
-            : voices.maleUs3.unmuted
-        );
+        this.playAudioClip(getSelectedSpeakerVoice().unmuted);
       }
     }
 
