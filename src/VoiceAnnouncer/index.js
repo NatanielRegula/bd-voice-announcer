@@ -6,8 +6,7 @@
  */
 
 module.exports = (Plugin, Library) => {
-  const { Logger, Utilities, WebpackModules, DiscordModules, Settings } =
-    Library;
+  const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
 
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
 
@@ -43,12 +42,14 @@ module.exports = (Plugin, Library) => {
         );
         return voices[0];
       }
+
       if (voiceWithSelectedId.length < 1) {
         Logger.error(
           'Voice with selected ID could not be found. Fallback voice is being used!'
         );
         return voices[0];
       }
+
       return voiceWithSelectedId[0];
     }
 
