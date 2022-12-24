@@ -20,6 +20,22 @@ module.exports = (Plugin, Library) => {
       this.getSelectedSpeakerVoice = this.getSelectedSpeakerVoice.bind(this);
       this.checkMuteStatusListenerHandler =
         this.checkMuteStatusListenerHandler.bind(this);
+      this.setUpListeners = this.setUpListeners.bind(this);
+      this.disposeListeners = this.disposeListeners.bind(this);
+    }
+
+    setUpListeners() {
+      Dispatcher.subscribe(
+        'AUDIO_TOGGLE_SELF_MUTE',
+        this.checkMuteStatusListenerHandler
+      );
+    }
+
+    disposeListeners() {
+      Dispatcher.unsubscribe(
+        'AUDIO_TOGGLE_SELF_MUTE',
+        this.checkMuteStatusListenerHandler
+      );
     }
 
     playAudioClip(src) {
@@ -71,11 +87,7 @@ module.exports = (Plugin, Library) => {
 
     onStart() {
       Logger.info('Plugin enabled!');
-
-      Dispatcher.subscribe(
-        'AUDIO_TOGGLE_SELF_MUTE',
-        this.checkMuteStatusListenerHandler
-      );
+      this.setUpListeners();
     }
 
     getSettingsPanel() {
@@ -105,10 +117,7 @@ module.exports = (Plugin, Library) => {
 
     onStop() {
       Logger.info('Plugin disabled!');
-      Dispatcher.unsubscribe(
-        'AUDIO_TOGGLE_SELF_MUTE',
-        this.checkMuteStatusListenerHandler
-      );
+      this.disposeListeners();
     }
   };
 };
