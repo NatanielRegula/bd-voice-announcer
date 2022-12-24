@@ -13,7 +13,6 @@ module.exports = (Plugin, Library) => {
 
   const voicesJson = JSON.parse(require('voices.json'));
   const voices = [...voicesJson.female, ...voicesJson.male];
-  // console.log(voices);
 
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
@@ -26,8 +25,6 @@ module.exports = (Plugin, Library) => {
 
     playAudioClip(src) {
       const audioPlayer = new Audio(src);
-
-      audioPlayer.currentTime = 0;
       audioPlayer.volume = this.settings.audioSettings.voiceNotificationVolume;
 
       audioPlayer.play().then(() => audioPlayer.remove());
@@ -82,12 +79,13 @@ module.exports = (Plugin, Library) => {
 
     getSettingsPanel() {
       const settingsPanel = this.buildSettingsPanel();
+      Logger.info(settingsPanel);
       settingsPanel.append(
         this.buildSetting({
           type: 'dropdown',
           id: 'speakerVoice',
           name: 'Voice',
-          note: 'Change the voice of the announcer.',
+          note: 'Change the voice of the announcer. A sample announcement will be played when changing this setting.',
           value: this.settings.audioSettings.speakerVoice ?? 0,
           options: voices.map((voice) => {
             return { label: voice.label, value: voice.id };
