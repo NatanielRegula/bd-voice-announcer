@@ -1,12 +1,10 @@
 {
 	"scripts": {
 		"build": "zpl build",
-		"init": "zpl init"
+		"init": "zpl init",
+		"watch": "while inotifywait -e close_write src/VoiceAnnouncer/*; do zpl build VoiceAnnouncer; done"
 	},
-
 	"devDependencies": {
 		"zerespluginlibrary": "^2.0.6"
-
 	}
-	
 }

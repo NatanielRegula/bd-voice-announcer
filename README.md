@@ -20,6 +20,12 @@ npm run build VoiceAnnouncer
 ## Live-update while developing (Linux / Bash)
 
 ```bash
+npm run watch
+```
+
+or
+
+```bash
 while inotifywait -e close_write src/VoiceAnnouncer/*; do npm run build VoiceAnnouncer; done
 ```
 
