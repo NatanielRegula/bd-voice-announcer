@@ -13,3 +13,17 @@ function getListOfFunctions(objectToTest) {
     if (e != arr[i + 1] && typeof objectToTest[e] == 'function') return true;
   });
 }
+
+function searchByAnything(str) {
+  let r;
+  r =
+    ZLibrary.WebpackModules.getByProps(str) ??
+    ZLibrary.WebpackModules.getByString(str) ??
+    ZLibrary.WebpackModules.getByPrototypes(str) ??
+    ZLibrary.WebpackModules.getByDisplayName(str) ??
+    ZLibrary.WebpackModules.getByRegex(str);
+  try {
+    r = ZLibrary.WebpackModules.getByIndex(str);
+  } catch (error) {}
+  return r;
+}
