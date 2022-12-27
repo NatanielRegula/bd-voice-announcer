@@ -45,3 +45,19 @@ PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM
 IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF
 ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
 ```
+
+# Credits
+
+## texttospeech
+
+Some text-to-speech recordings were made using [texttospeech](https://texttospeech.io/) service.
+
+A snippet from their [FAQ section as of Dec 27th 2022](https://texttospeech.io/faqs)
+
+```
+Can I use the generated text to speech files in my commercial works?
+
+The service basically is free to use for your personal purposes.
+
+    - Otherwise, please help to add a credit / backlink to our site (https://texttospeech.io) to keep this free service running.
+```
