@@ -16,12 +16,27 @@ module.exports = (Plugin, Library) => {
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
       super();
+      //audio
       this.playAudioClip = this.playAudioClip.bind(this);
       this.getSelectedSpeakerVoice = this.getSelectedSpeakerVoice.bind(this);
+      this.shouldMakeSound = this.shouldMakeSound.bind(this);
+
+      //event listener handlers
       this.checkMuteStatusListenerHandler =
         this.checkMuteStatusListenerHandler.bind(this);
+      this.checkDeafenedStatusListenerHandler =
+        this.checkDeafenedStatusListenerHandler.bind(this);
+
       this.setUpListeners = this.setUpListeners.bind(this);
       this.disposeListeners = this.disposeListeners.bind(this);
+    }
+
+    shouldMakeSound() {
+      return !(
+        this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
+        DiscordModules.StreamerModeStore.getSettings().enabled &&
+        DiscordModules.StreamerModeStore.getSettings().disableSounds
+      );
     }
 
     setUpListeners() {
@@ -29,6 +44,23 @@ module.exports = (Plugin, Library) => {
         'AUDIO_TOGGLE_SELF_MUTE',
         this.checkMuteStatusListenerHandler
       );
+      Dispatcher.subscribe(
+        'AUDIO_TOGGLE_SELF_DEAF',
+        this.checkDeafenedStatusListenerHandler
+      );
+      // Dispatcher.subscribe('SPEAKING', this.checkDeafenedStatusListenerHandler);
+      // Dispatcher.subscribe(
+      //   'VOICE_CHANNEL_SELECT',
+      //   this.checkTestStatusListenerHandler
+      // );
+      // Dispatcher.subscribe(
+      //   'VOICE_STATE_UPDATES',
+      //   this.checkTestStatusListenerHandler
+      // );
+      // Dispatcher.subscribe(
+      //   'SPEAK_MESSAGE',
+      //   this.checkTestStatusListenerHandler
+      // );
     }
 
     disposeListeners() {
@@ -36,6 +68,26 @@ module.exports = (Plugin, Library) => {
         'AUDIO_TOGGLE_SELF_MUTE',
         this.checkMuteStatusListenerHandler
       );
+      Dispatcher.unsubscribe(
+        'AUDIO_TOGGLE_SELF_DEAF',
+        this.checkDeafenedStatusListenerHandler
+      );
+      // Dispatcher.unsubscribe(
+      //   'SPEAKING',
+      //   this.checkDeafenedStatusListenerHandler
+      // );
+      // Dispatcher.unsubscribe(
+      //   'VOICE_CHANNEL_SELECT',
+      //   this.checkTestStatusListenerHandler
+      // );
+      // Dispatcher.unsubscribe(
+      //   'VOICE_STATE_UPDATES',
+      //   this.checkTestStatusListenerHandler
+      // );
+      // Dispatcher.unsubscribe(
+      //   'SPEAK_MESSAGE',
+      //   this.checkTestStatusListenerHandler
+      // );
     }
 
     playAudioClip(src) {
@@ -69,14 +121,36 @@ module.exports = (Plugin, Library) => {
       return voiceWithSelectedId[0];
     }
 
-    checkMuteStatusListenerHandler() {
-      if (
-        this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
-        DiscordModules.StreamerModeStore.getSettings().enabled &&
-        DiscordModules.StreamerModeStore.getSettings().disableSounds
-      ) {
-        return;
+    checkDeafenedStatusListenerHandler() {
+      if (!this.shouldMakeSound()) return;
+
+      if (DiscordModules.MediaInfo.isSelfDeaf()) {
+        this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.deafened);
+      } else {
+        this.playAudioClip(
+          this.getSelectedSpeakerVoice().audioClips.undeafened
+        );
       }
+    }
+
+    checkTestStatusListenerHandler(e) {
+      // if (!this.shouldMakeSound()) return;
+      Logger.info(e);
+      // if (
+      //   this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
+      //   DiscordModules.StreamerModeStore.getSettings().enabled &&
+      //   DiscordModules.StreamerModeStore.getSettings().disableSounds
+      // ) {
+      //   return;
+      // }
+      // if (DiscordModules.MediaInfo.isSelfMute()) {
+      //   this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.muted);
+      // } else {
+      //   this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.unmuted);
+      // }
+    }
+    checkMuteStatusListenerHandler() {
+      if (!this.shouldMakeSound()) return;
 
       if (DiscordModules.MediaInfo.isSelfMute()) {
         this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.muted);
