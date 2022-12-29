@@ -180,18 +180,16 @@ module.exports = (Plugin, Library) => {
     }
 
     getSettingsPanel() {
+      const allVoices = this.getAllVoices();
       const settingsPanel = this.buildSettingsPanel();
-      Logger.info(settingsPanel);
       settingsPanel.append(
         this.buildSetting({
           type: 'dropdown',
           id: 'speakerVoice',
           name: 'Voice',
           note: 'Change the voice of the announcer. A sample announcement will be played when changing this setting.',
-          value:
-            this.settings.audioSettings.speakerVoice ??
-            '746bdd5b-006f-4fb9-af9c-49c501b8820d',
-          options: this.getAllVoices().map((voice) => {
+          value: this.settings.audioSettings.speakerVoice ?? allVoices[0].id,
+          options: allVoices.map((voice) => {
             return { label: voice.label, value: voice.id };
           }),
           onChange: (value) => {
