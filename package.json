@@ -3,7 +3,8 @@
 		"build": "zpl build",
 		"init": "zpl init",
 		"watch": "while inotifywait -e close_write src/VoiceAnnouncer/*; do zpl build VoiceAnnouncer; done",
-		"watch:voice": "while inotifywait -e close_write src/FemaleUKVoiceForVA/*; do zpl build FemaleUKVoiceForVA; done"
+		"watch:voice": "while inotifywait -e close_write src/FemaleUKVoiceForVA/*; do zpl build FemaleUKVoiceForVA; done",
+		"watch:all": "npm run watch & npm run watch:voice"
 	},
 	"devDependencies": {
 		"zerespluginlibrary": "^2.0.6"
