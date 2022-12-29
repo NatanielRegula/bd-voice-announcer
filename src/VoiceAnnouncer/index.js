@@ -11,15 +11,17 @@ module.exports = (Plugin, Library) => {
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
 
   const voicesJson = JSON.parse(require('voices.json'));
-  const voices = [...voicesJson.female, ...voicesJson.male];
+
+  const localVoices = [...voicesJson.female, ...voicesJson.male];
 
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
       super();
       //audio
       this.playAudioClip = this.playAudioClip.bind(this);
-      this.getSelectedSpeakerVoice = this.getSelectedSpeakerVoice.bind(this);
       this.shouldMakeSound = this.shouldMakeSound.bind(this);
+      this.getSelectedSpeakerVoice = this.getSelectedSpeakerVoice.bind(this);
+      this.getAllVoices = this.getAllVoices.bind(this);
 
       //event listener handlers
       this.checkMuteStatusListenerHandler =
@@ -30,7 +32,13 @@ module.exports = (Plugin, Library) => {
       this.setUpListeners = this.setUpListeners.bind(this);
       this.disposeListeners = this.disposeListeners.bind(this);
     }
-
+    getAllVoices() {
+      const allVoices = [
+        ...localVoices,
+        ...(window.voiceAnnouncerAdditionalVoicesArray ?? []),
+      ];
+      return allVoices;
+    }
     shouldMakeSound() {
       return !(
         this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
@@ -98,9 +106,13 @@ module.exports = (Plugin, Library) => {
     }
 
     getSelectedSpeakerVoice(overrideVoiceId) {
+      const allVoices = this.getAllVoices();
       const selectedVoiceId =
-        overrideVoiceId ?? this.settings.audioSettings.speakerVoice ?? 0;
-      const voiceWithSelectedId = voices.filter(
+        overrideVoiceId ??
+        this.settings.audioSettings.speakerVoice ??
+        allVoices[0].id;
+
+      const voiceWithSelectedId = allVoices.filter(
         (voice) => voice.id == selectedVoiceId
       );
 
@@ -108,14 +120,14 @@ module.exports = (Plugin, Library) => {
         Logger.error(
           'Two or more voices have the same id! This is not allowed. Fallback voice is being used!'
         );
-        return voices[0];
+        return allVoices[0];
       }
 
       if (voiceWithSelectedId.length < 1) {
         Logger.error(
           'Voice with selected ID could not be found. Fallback voice is being used!'
         );
-        return voices[0];
+        return allVoices[0];
       }
 
       return voiceWithSelectedId[0];
@@ -161,6 +173,9 @@ module.exports = (Plugin, Library) => {
 
     onStart() {
       Logger.info('Plugin enabled!');
+      if (window.voiceAnnouncerAdditionalVoicesArray === undefined) {
+        window.voiceAnnouncerAdditionalVoicesArray = [];
+      }
       this.setUpListeners();
     }
 
@@ -173,8 +188,10 @@ module.exports = (Plugin, Library) => {
           id: 'speakerVoice',
           name: 'Voice',
           note: 'Change the voice of the announcer. A sample announcement will be played when changing this setting.',
-          value: this.settings.audioSettings.speakerVoice ?? 0,
-          options: voices.map((voice) => {
+          value:
+            this.settings.audioSettings.speakerVoice ??
+            '746bdd5b-006f-4fb9-af9c-49c501b8820d',
+          options: this.getAllVoices().map((voice) => {
             return { label: voice.label, value: voice.id };
           }),
           onChange: (value) => {
@@ -191,6 +208,7 @@ module.exports = (Plugin, Library) => {
 
     onStop() {
       Logger.info('Plugin disabled!');
+      window.voiceAnnouncerAdditionalVoicesArray = undefined;
       this.disposeListeners();
     }
   };

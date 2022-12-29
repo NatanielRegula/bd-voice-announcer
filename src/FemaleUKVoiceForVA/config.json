@@ -1,0 +1,24 @@
+{
+    "main": "index.js",
+    "id": "",
+    "name": "FemaleUKVoiceForVA",
+    "author": "NR",
+    "authorId": "",
+    "authorLink": "",
+    "version": "0.0.1",
+    "description": "Voice pack for VoiceAnnouncer plugin",
+    "website": "",
+    "source": "https://github.com/NatanielRegula/bd-voice-announcer",
+    "patreon": "",
+    "donate": "paypal.me/NatanielRegula",
+    "invite": "",
+    "changelog": [
+        {
+            "title": "0.0.1",
+            "type": "improved",
+            "items": [
+                "Added a streamer mode respecting setting."
+            ]
+        }
+    ]
+}
