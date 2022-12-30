@@ -1,12 +1,18 @@
 {
 	"scripts": {
 		"build": "zpl build",
+		"build:dependencies": "webpack",
 		"init": "zpl init",
 		"watch": "while inotifywait -e close_write src/VoiceAnnouncer/*; do zpl build VoiceAnnouncer; done",
 		"watch:voice": "while inotifywait -e close_write src/FemaleUKVoiceForVA/*; do zpl build FemaleUKVoiceForVA; done",
 		"watch:all": "npm run watch & npm run watch:voice"
 	},
 	"devDependencies": {
+		"webpack": "^5.75.0",
+		"webpack-cli": "^5.0.1",
 		"zerespluginlibrary": "^2.0.6"
+	},
+	"dependencies": {
+		"uuid": "^9.0.0"
 	}
 }

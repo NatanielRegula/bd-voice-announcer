@@ -5,13 +5,21 @@
  * @returns
  */
 
-module.exports = (Plugin, Library) => {
+module.exports = async (Plugin, Library) => {
   const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
 
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
 
   const voicesJson = JSON.parse(require('voices.json'));
   const localVoices = [...voicesJson.female, ...voicesJson.male];
+
+  // const dependencies = require('./dependencies.js');
+  await fetch('./voices.json');
+
+  // Logger.info(dependencies);
+  // localVoices.forEach((voice) => {
+  //   voice.a = dependencies.v4();
+  // });
 
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
