@@ -11,6 +11,8 @@ module.exports = (Plugin, Library) => {
   const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
 
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
+  const DisStreamerModeStore = DiscordModules.StreamerModeStore;
+  const DisMediaInfo = DiscordModules.MediaInfo;
 
   const voicesJson = JSON.parse(require('voices.json'));
 
@@ -44,8 +46,8 @@ module.exports = (Plugin, Library) => {
     shouldMakeSound() {
       return !(
         this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
-        DiscordModules.StreamerModeStore.getSettings().enabled &&
-        DiscordModules.StreamerModeStore.getSettings().disableSounds
+        DisStreamerModeStore.getSettings().enabled &&
+        DisStreamerModeStore.getSettings().disableSounds
       );
     }
 
@@ -138,7 +140,7 @@ module.exports = (Plugin, Library) => {
     checkDeafenedStatusListenerHandler() {
       if (!this.shouldMakeSound()) return;
 
-      if (DiscordModules.MediaInfo.isSelfDeaf()) {
+      if (DisMediaInfo.isSelfDeaf()) {
         this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.deafened);
       } else {
         this.playAudioClip(
@@ -157,7 +159,7 @@ module.exports = (Plugin, Library) => {
       // ) {
       //   return;
       // }
-      // if (DiscordModules.MediaInfo.isSelfMute()) {
+      // if (DisMediaInfo.isSelfMute()) {
       //   this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.muted);
       // } else {
       //   this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.unmuted);
@@ -166,7 +168,7 @@ module.exports = (Plugin, Library) => {
     checkMuteStatusListenerHandler() {
       if (!this.shouldMakeSound()) return;
 
-      if (DiscordModules.MediaInfo.isSelfMute()) {
+      if (DisMediaInfo.isSelfMute()) {
         this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.muted);
       } else {
         this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.unmuted);
