@@ -1,3 +1,4 @@
+'use strict';
 /**
  *
  * @param {import("zerespluginlibrary").Plugin} Plugin
@@ -5,21 +6,14 @@
  * @returns
  */
 
-module.exports = async (Plugin, Library) => {
+module.exports = (Plugin, Library) => {
+  // import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
   const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
 
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
 
   const voicesJson = JSON.parse(require('voices.json'));
   const localVoices = [...voicesJson.female, ...voicesJson.male];
-
-  // const dependencies = require('./dependencies.js');
-  await fetch('./voices.json');
-
-  // Logger.info(dependencies);
-  // localVoices.forEach((voice) => {
-  //   voice.a = dependencies.v4();
-  // });
 
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
