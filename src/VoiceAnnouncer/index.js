@@ -35,6 +35,15 @@ module.exports = (Plugin, Library) => {
 
       this.setUpListeners = this.setUpListeners.bind(this);
       this.disposeListeners = this.disposeListeners.bind(this);
+
+      this.disEventListenerPairs = [
+        ['AUDIO_TOGGLE_SELF_MUTE', this.checkMuteStatusListenerHandler],
+        ['AUDIO_TOGGLE_SELF_DEAF', this.checkDeafenedStatusListenerHandler],
+        // ['SPEAKING', this.checkTestStatusListenerHandler],
+        // ['VOICE_CHANNEL_SELECT', this.checkTestStatusListenerHandler],
+        // ['VOICE_STATE_UPDATES', this.checkTestStatusListenerHandler],
+        // ['SPEAK_MESSAGE', this.checkTestStatusListenerHandler],
+      ];
     }
     getAllVoices() {
       const allVoices = [
@@ -52,54 +61,15 @@ module.exports = (Plugin, Library) => {
     }
 
     setUpListeners() {
-      Dispatcher.subscribe(
-        'AUDIO_TOGGLE_SELF_MUTE',
-        this.checkMuteStatusListenerHandler
-      );
-      Dispatcher.subscribe(
-        'AUDIO_TOGGLE_SELF_DEAF',
-        this.checkDeafenedStatusListenerHandler
-      );
-      // Dispatcher.subscribe('SPEAKING', this.checkDeafenedStatusListenerHandler);
-      // Dispatcher.subscribe(
-      //   'VOICE_CHANNEL_SELECT',
-      //   this.checkTestStatusListenerHandler
-      // );
-      // Dispatcher.subscribe(
-      //   'VOICE_STATE_UPDATES',
-      //   this.checkTestStatusListenerHandler
-      // );
-      // Dispatcher.subscribe(
-      //   'SPEAK_MESSAGE',
-      //   this.checkTestStatusListenerHandler
-      // );
+      this.disEventListenerPairs.forEach((eventListenerPair) => {
+        Dispatcher.subscribe(...eventListenerPair);
+      });
     }
 
     disposeListeners() {
-      Dispatcher.unsubscribe(
-        'AUDIO_TOGGLE_SELF_MUTE',
-        this.checkMuteStatusListenerHandler
-      );
-      Dispatcher.unsubscribe(
-        'AUDIO_TOGGLE_SELF_DEAF',
-        this.checkDeafenedStatusListenerHandler
-      );
-      // Dispatcher.unsubscribe(
-      //   'SPEAKING',
-      //   this.checkDeafenedStatusListenerHandler
-      // );
-      // Dispatcher.unsubscribe(
-      //   'VOICE_CHANNEL_SELECT',
-      //   this.checkTestStatusListenerHandler
-      // );
-      // Dispatcher.unsubscribe(
-      //   'VOICE_STATE_UPDATES',
-      //   this.checkTestStatusListenerHandler
-      // );
-      // Dispatcher.unsubscribe(
-      //   'SPEAK_MESSAGE',
-      //   this.checkTestStatusListenerHandler
-      // );
+      this.disEventListenerPairs.forEach((eventListenerPair) => {
+        Dispatcher.unsubscribe(...eventListenerPair);
+      });
     }
 
     playAudioClip(src) {
