@@ -7,7 +7,6 @@
  */
 
 module.exports = (Plugin, Library) => {
-  // import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
   const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
 
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
@@ -51,17 +50,6 @@ module.exports = (Plugin, Library) => {
           }
         });
       });
-
-      // for (voice in window.voiceAnnouncerAdditionalVoicesArray) {
-      //   if (
-      //     a.find((e) => {
-      //       e.id == voice.id;
-      //     }) != undefined
-      //   ) {
-      //     a.
-      //   }
-      // }
-      // window.voiceAnnouncerAdditionalVoicesArray.concat(localVoices);
     }
   };
 };
