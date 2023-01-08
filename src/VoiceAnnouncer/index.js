@@ -13,6 +13,7 @@ module.exports = (Plugin, Library) => {
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
   const DisStreamerModeStore = DiscordModules.StreamerModeStore;
   const DisMediaInfo = DiscordModules.MediaInfo;
+  const DisSelectedChannelStore = DiscordModules.SelectedChannelStore;
 
   const voicesJson = JSON.parse(require('voices.json'));
 
@@ -21,6 +22,7 @@ module.exports = (Plugin, Library) => {
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
       super();
+
       //audio
       this.playAudioClip = this.playAudioClip.bind(this);
       this.shouldMakeSound = this.shouldMakeSound.bind(this);
@@ -32,6 +34,8 @@ module.exports = (Plugin, Library) => {
         this.checkMuteStatusListenerHandler.bind(this);
       this.checkDeafenedStatusListenerHandler =
         this.checkDeafenedStatusListenerHandler.bind(this);
+      this.channelSwitchedListenerHandler =
+        this.channelSwitchedListenerHandler.bind(this);
 
       this.setUpListeners = this.setUpListeners.bind(this);
       this.disposeListeners = this.disposeListeners.bind(this);
@@ -40,10 +44,14 @@ module.exports = (Plugin, Library) => {
         ['AUDIO_TOGGLE_SELF_MUTE', this.checkMuteStatusListenerHandler],
         ['AUDIO_TOGGLE_SELF_DEAF', this.checkDeafenedStatusListenerHandler],
         // ['SPEAKING', this.checkTestStatusListenerHandler],
-        // ['VOICE_CHANNEL_SELECT', this.checkTestStatusListenerHandler],
+        ['VOICE_CHANNEL_SELECT', this.channelSwitchedListenerHandler],
         // ['VOICE_STATE_UPDATES', this.checkTestStatusListenerHandler],
         // ['SPEAK_MESSAGE', this.checkTestStatusListenerHandler],
+        // ['GUILD_MEMBER_UPDATE', this.checkTestStatusListenerHandler],
       ];
+
+      //cache
+      this.cachedChannelId = DisSelectedChannelStore.getChannelId() ?? null;
     }
     getAllVoices() {
       const allVoices = [
@@ -117,6 +125,33 @@ module.exports = (Plugin, Library) => {
           this.getSelectedSpeakerVoice().audioClips.undeafened
         );
       }
+    }
+
+    channelSwitchedListenerHandler(e) {
+      if (!this.shouldMakeSound()) return;
+
+      const eventChannelId = e.channelId;
+
+      //if this is true it means that channel wasn't changed
+      if (eventChannelId == this.cachedChannelId) return;
+
+      if (eventChannelId == null) {
+        //this means we have disconnected from voice channel
+        //there could be an announcement made for this.
+        this.cachedChannelId = eventChannelId;
+        return;
+      }
+      if (this.cachedChannelId == null) {
+        //this means we have connected to a voice channel for the first time
+        //so there could be a "connected" announcement
+        this.cachedChannelId = eventChannelId;
+        return;
+      }
+
+      this.cachedChannelId = eventChannelId;
+      this.playAudioClip(
+        this.getSelectedSpeakerVoice().audioClips.channelSwitched
+      );
     }
 
     checkTestStatusListenerHandler(e) {
