@@ -5,7 +5,7 @@
     "author": "NR",
     "authorId": "",
     "authorLink": "",
-    "version": "0.0.6",
+    "version": "0.0.7",
     "description": "When the user switches between muted and unmuted the plugin will announce the currently set mode via audio notification.",
     "website": "",
     "source": "https://github.com/NatanielRegula/bd-voice-announcer",
@@ -13,6 +13,15 @@
     "donate": "paypal.me/NatanielRegula",
     "invite": "",
     "changelog": [
+        {
+            "title": "0.0.7",
+            "type": "improved",
+            "items": [
+                "Added a voice announcement for when the user joins a voice channel",
+                "Added a voice announcement for when the user leaves a voice channel",
+                "Added a voice announcement for when the user switches between voice channels"
+            ]
+        },
         {
             "title": "0.0.6",
             "type": "improved",
