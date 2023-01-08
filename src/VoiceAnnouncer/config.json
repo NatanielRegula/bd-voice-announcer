@@ -17,8 +17,8 @@
             "title": "0.0.8",
             "type": "improved",
             "items": [
-                "Added a voice announcement for when a user joins current voice channel",
-                "Added a voice announcement for when a user leaves current voice channel"
+                "Added a voice announcement for when someone joins current voice channel",
+                "Added a voice announcement for when someone leaves current voice channel"
             ]
         },
         {
