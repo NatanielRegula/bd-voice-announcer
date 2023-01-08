@@ -138,12 +138,17 @@ module.exports = (Plugin, Library) => {
       if (eventChannelId == null) {
         //this means we have disconnected from voice channel
         //there could be an announcement made for this.
+        this.playAudioClip(
+          this.getSelectedSpeakerVoice().audioClips.disconnected
+        );
         this.cachedChannelId = eventChannelId;
         return;
       }
+
       if (this.cachedChannelId == null) {
         //this means we have connected to a voice channel for the first time
         //so there could be a "connected" announcement
+        this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.connected);
         this.cachedChannelId = eventChannelId;
         return;
       }
