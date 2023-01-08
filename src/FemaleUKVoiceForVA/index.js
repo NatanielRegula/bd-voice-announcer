@@ -1,3 +1,4 @@
+'use strict';
 /**
  *
  * @param {import("zerespluginlibrary").Plugin} Plugin
@@ -49,17 +50,6 @@ module.exports = (Plugin, Library) => {
           }
         });
       });
-
-      // for (voice in window.voiceAnnouncerAdditionalVoicesArray) {
-      //   if (
-      //     a.find((e) => {
-      //       e.id == voice.id;
-      //     }) != undefined
-      //   ) {
-      //     a.
-      //   }
-      // }
-      // window.voiceAnnouncerAdditionalVoicesArray.concat(localVoices);
     }
   };
 };
