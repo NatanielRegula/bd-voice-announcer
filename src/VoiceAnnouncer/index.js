@@ -181,12 +181,10 @@ module.exports = (Plugin, Library) => {
         this.cachedCurrentVoiceChannelUsersIds = currentVoiceChannelUsersIds;
 
         //if the users id is in this list it means that we just connected
-        if (IdsOfUsersWhoJoined.includes(DisUserStore.getCurrentUser().id))
-          return;
+        if (IdsOfUsersWhoJoined.includes(this.cachedCurrentUserId)) return;
 
         //if the users id is in this list it means that we just disconnected
-        if (IdsOfUsersWhoLeft.includes(DisUserStore.getCurrentUser().id))
-          return;
+        if (IdsOfUsersWhoLeft.includes(this.cachedCurrentUserId)) return;
 
         IdsOfUsersWhoJoined.forEach((userId) => {
           Logger.log(`Joined ${userId}`);
