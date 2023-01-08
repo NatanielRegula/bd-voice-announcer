@@ -11,9 +11,14 @@ module.exports = (Plugin, Library) => {
   const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
 
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
+  const DisVoiceStateStore = WebpackModules.getByProps(
+    'getVoiceStateForUser',
+    'getVoiceStatesForChannel'
+  );
   const DisStreamerModeStore = DiscordModules.StreamerModeStore;
   const DisMediaInfo = DiscordModules.MediaInfo;
   const DisSelectedChannelStore = DiscordModules.SelectedChannelStore;
+  const DisUserStore = DiscordModules.UserStore;
 
   const voicesJson = JSON.parse(require('voices.json'));
 
@@ -36,6 +41,8 @@ module.exports = (Plugin, Library) => {
         this.checkDeafenedStatusListenerHandler.bind(this);
       this.channelSwitchedListenerHandler =
         this.channelSwitchedListenerHandler.bind(this);
+      this.voiceChannelUpdateListenerHandler =
+        this.voiceChannelUpdateListenerHandler.bind(this);
 
       this.setUpListeners = this.setUpListeners.bind(this);
       this.disposeListeners = this.disposeListeners.bind(this);
@@ -45,13 +52,25 @@ module.exports = (Plugin, Library) => {
         ['AUDIO_TOGGLE_SELF_DEAF', this.checkDeafenedStatusListenerHandler],
         // ['SPEAKING', this.checkTestStatusListenerHandler],
         ['VOICE_CHANNEL_SELECT', this.channelSwitchedListenerHandler],
-        // ['VOICE_STATE_UPDATES', this.checkTestStatusListenerHandler],
-        // ['SPEAK_MESSAGE', this.checkTestStatusListenerHandler],
-        // ['GUILD_MEMBER_UPDATE', this.checkTestStatusListenerHandler],
+
+        ['VOICE_STATE_UPDATES', this.voiceChannelUpdateListenerHandler],
+
+        // ['CALL_UPDATE', this.checkTestStatusListenerHandler],
+        // ['VIDEO_BACKGROUND_SHOW_FEEDBACK', this.checkTestStatusListenerHandler],
+        // ['VOICE_CHANNEL_SELECT', this.checkTestStatusListenerHandler],
+        // ['VOICE_CHANNEL_SHOW_FEEDBACK', this.checkTestStatusListenerHandler],
+        // ['CHANNEL_RECIPIENT_ADD', this.checkTestStatusListenerHandler],
+        // VOICE_ACTIVITY
       ];
 
       //cache
-      this.cachedChannelId = DisSelectedChannelStore.getChannelId() ?? null;
+      this.cachedChannelId = null;
+
+      this.cachedVoiceChannelId =
+        DisSelectedChannelStore.getVoiceChannelId() ?? null;
+
+      this.cachedCurrentVoiceChannelUsersIds = [];
+      this.cachedCurrentUserId = DisUserStore.getCurrentUser().id;
     }
     getAllVoices() {
       const allVoices = [
@@ -127,6 +146,66 @@ module.exports = (Plugin, Library) => {
       }
     }
 
+    voiceChannelUpdateListenerHandler(_) {
+      try {
+        if (!this.shouldMakeSound()) return;
+
+        //do not carry on if we're not in the same channel because that means that we have either just connected or disconnected
+        if (
+          this.cachedVoiceChannelId !=
+            DisSelectedChannelStore.getVoiceChannelId() ||
+          this.cachedVoiceChannelId == null ||
+          DisSelectedChannelStore.getVoiceChannelId() == null
+        )
+          return;
+
+        this.cachedVoiceChannelId = DisSelectedChannelStore.getVoiceChannelId();
+
+        const voiceStatesForCurrentVoiceChannelObject =
+          DisVoiceStateStore.getVoiceStatesForChannel(
+            DisSelectedChannelStore.getVoiceChannelId()
+          );
+
+        const currentVoiceChannelUsersIds = Object.keys(
+          voiceStatesForCurrentVoiceChannelObject
+        ).map((key) => voiceStatesForCurrentVoiceChannelObject[key].userId);
+
+        const IdsOfUsersWhoJoined = currentVoiceChannelUsersIds.filter(
+          (state) => !this.cachedCurrentVoiceChannelUsersIds.includes(state)
+        );
+
+        const IdsOfUsersWhoLeft = this.cachedCurrentVoiceChannelUsersIds.filter(
+          (state) => !currentVoiceChannelUsersIds.includes(state)
+        );
+
+        this.cachedCurrentVoiceChannelUsersIds = currentVoiceChannelUsersIds;
+
+        //if the users id is in this list it means that we just connected
+        if (IdsOfUsersWhoJoined.includes(DisUserStore.getCurrentUser().id))
+          return;
+
+        //if the users id is in this list it means that we just disconnected
+        if (IdsOfUsersWhoLeft.includes(DisUserStore.getCurrentUser().id))
+          return;
+
+        IdsOfUsersWhoJoined.forEach((userId) => {
+          Logger.log(`Joined ${userId}`);
+          this.playAudioClip(
+            this.getSelectedSpeakerVoice().audioClips.userJoinedYourChannel
+          );
+        });
+
+        IdsOfUsersWhoLeft.forEach((userId) => {
+          Logger.log(`Left ${userId}`);
+          this.playAudioClip(
+            this.getSelectedSpeakerVoice().audioClips.userLeftYourChannel
+          );
+        });
+      } catch (error) {
+        Logger.error(error);
+      }
+    }
+
     channelSwitchedListenerHandler(e) {
       if (!this.shouldMakeSound()) return;
 
@@ -141,6 +220,9 @@ module.exports = (Plugin, Library) => {
         this.playAudioClip(
           this.getSelectedSpeakerVoice().audioClips.disconnected
         );
+
+        //emptying the array because the user disconnected from the channel to avoid announcements when re-connecting to the same channel
+        this.cachedCurrentVoiceChannelUsersIds = [];
         this.cachedChannelId = eventChannelId;
         return;
       }
@@ -148,12 +230,14 @@ module.exports = (Plugin, Library) => {
       if (this.cachedChannelId == null) {
         //this means we have connected to a voice channel for the first time
         //so there could be a "connected" announcement
+
         this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.connected);
         this.cachedChannelId = eventChannelId;
         return;
       }
 
       this.cachedChannelId = eventChannelId;
+      this.cachedCurrentVoiceChannelUsersIds = [];
       this.playAudioClip(
         this.getSelectedSpeakerVoice().audioClips.channelSwitched
       );
@@ -161,6 +245,7 @@ module.exports = (Plugin, Library) => {
 
     checkTestStatusListenerHandler(e) {
       // if (!this.shouldMakeSound()) return;
+      Logger.info('test event fired');
       Logger.info(e);
       // if (
       //   this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
