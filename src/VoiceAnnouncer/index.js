@@ -50,11 +50,10 @@ module.exports = (Plugin, Library) => {
       this.disEventListenerPairs = [
         ['AUDIO_TOGGLE_SELF_MUTE', this.checkMuteStatusListenerHandler],
         ['AUDIO_TOGGLE_SELF_DEAF', this.checkDeafenedStatusListenerHandler],
-        // ['SPEAKING', this.checkTestStatusListenerHandler],
         ['VOICE_CHANNEL_SELECT', this.channelSwitchedListenerHandler],
-
         ['VOICE_STATE_UPDATES', this.voiceChannelUpdateListenerHandler],
 
+        // ['SPEAKING', this.checkTestStatusListenerHandler],
         // ['CHANNEL_UPDATES', this.checkTestStatusListenerHandler],
         // ['CALL_UPDATE', this.checkTestStatusListenerHandler],
         // ['VIDEO_BACKGROUND_SHOW_FEEDBACK', this.checkTestStatusListenerHandler],
@@ -80,6 +79,7 @@ module.exports = (Plugin, Library) => {
         this.refreshCurrentVoiceChannelUsersIdsCache();
       }
     }
+
     getAllVoices() {
       const allVoices = [
         ...localVoices,
@@ -87,6 +87,7 @@ module.exports = (Plugin, Library) => {
       ];
       return allVoices;
     }
+
     shouldMakeSound() {
       return !(
         this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
@@ -272,6 +273,7 @@ module.exports = (Plugin, Library) => {
       //   this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.unmuted);
       // }
     }
+
     checkMuteStatusListenerHandler() {
       if (!this.shouldMakeSound()) return;
 
