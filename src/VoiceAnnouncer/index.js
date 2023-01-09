@@ -179,6 +179,12 @@ module.exports = (Plugin, Library) => {
         );
 
         this.cachedCurrentVoiceChannelUsersIds = currentVoiceChannelUsersIds;
+        if (
+          this.cachedCurrentUserId == null ||
+          this.cachedCurrentUserId == undefined
+        ) {
+          this.cachedCurrentUserId = DisUserStore.getCurrentUser().id;
+        }
 
         //if the users id is in this list it means that we just connected
         if (IdsOfUsersWhoJoined.includes(this.cachedCurrentUserId)) return;
