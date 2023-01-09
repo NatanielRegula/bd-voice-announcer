@@ -55,6 +55,7 @@ module.exports = (Plugin, Library) => {
 
         ['VOICE_STATE_UPDATES', this.voiceChannelUpdateListenerHandler],
 
+        // ['CHANNEL_UPDATES', this.checkTestStatusListenerHandler],
         // ['CALL_UPDATE', this.checkTestStatusListenerHandler],
         // ['VIDEO_BACKGROUND_SHOW_FEEDBACK', this.checkTestStatusListenerHandler],
         // ['VOICE_CHANNEL_SELECT', this.checkTestStatusListenerHandler],
@@ -64,7 +65,7 @@ module.exports = (Plugin, Library) => {
       ];
 
       //cache
-      this.cachedChannelId = null;
+      // this.cachedVoiceChannelId = null;
 
       this.cachedVoiceChannelId =
         DisSelectedChannelStore.getVoiceChannelId() ?? null;
@@ -177,57 +178,67 @@ module.exports = (Plugin, Library) => {
     voiceChannelUpdateListenerHandler(_) {
       try {
         if (!this.shouldMakeSound()) return;
-        Logger.info('here');
-        // Logger.info(`this.cachedVoiceChannelId ${this.cachedVoiceChannelId}`);
-        // Logger.info(
-        //   `DisSelectedChannelStore.getVoiceChannelId() ${DisSelectedChannelStore.getVoiceChannelId()}`
-        // );
 
         //do not carry on if we're not in the same channel because that means that we have either just connected or disconnected
+        // if (
+        //   (this.cachedVoiceChannelId != null &&
+        //     this.cachedVoiceChannelId !=
+        //       DisSelectedChannelStore.getVoiceChannelId()) ||
+        //   DisSelectedChannelStore.getVoiceChannelId() == null
+        // )
+        //   return;
+        const eventVoiceChannelId = DisSelectedChannelStore.getVoiceChannelId();
 
-        if (
-          (this.cachedVoiceChannelId != null &&
-            this.cachedVoiceChannelId !=
-              DisSelectedChannelStore.getVoiceChannelId()) ||
-          DisSelectedChannelStore.getVoiceChannelId() == null
-        )
+        if (this.cachedVoiceChannelId == null) {
+          Logger.debug(
+            'this.cachedVoiceChannelId is null we werent in a channel'
+          );
+
           return;
-        this.cachedVoiceChannelId = DisSelectedChannelStore.getVoiceChannelId();
+        }
+        if (eventVoiceChannelId == null) {
+          Logger.debug("we're not in a voice channel");
+          return;
+        }
+        if (eventVoiceChannelId != this.cachedVoiceChannelId) {
+          return;
+        }
 
         const currentVoiceChannelUsersIds =
           this.getCurrentVoiceChannelUsersIds();
 
-        const IdsOfUsersWhoJoined = currentVoiceChannelUsersIds.filter(
+        const idsOfUsersWhoJoined = currentVoiceChannelUsersIds.filter(
           (state) => !this.cachedCurrentVoiceChannelUsersIds.includes(state)
         );
 
-        const IdsOfUsersWhoLeft = this.cachedCurrentVoiceChannelUsersIds.filter(
+        const idsOfUsersWhoLeft = this.cachedCurrentVoiceChannelUsersIds.filter(
           (state) => !currentVoiceChannelUsersIds.includes(state)
         );
 
+        //this is used for the next time this function runs
         this.refreshCurrentVoiceChannelUsersIdsCache();
 
-        if (
-          this.cachedCurrentUserId == null ||
-          this.cachedCurrentUserId == undefined
-        ) {
-          this.cachedCurrentUserId = DisUserStore.getCurrentUser().id;
-        }
+        // if (
+        //   this.cachedCurrentUserId == null ||
+        //   this.cachedCurrentUserId == undefined
+        // ) {
+        //   this.cachedCurrentUserId = DisUserStore.getCurrentUser().id;
+        // }
 
         //if the users id is in this list it means that we just connected
-        if (IdsOfUsersWhoJoined.includes(this.cachedCurrentUserId)) return;
+        if (idsOfUsersWhoJoined.includes(this.cachedCurrentUserId)) return;
 
         //if the users id is in this list it means that we just disconnected
-        if (IdsOfUsersWhoLeft.includes(this.cachedCurrentUserId)) return;
+        if (idsOfUsersWhoLeft.includes(this.cachedCurrentUserId)) return;
 
-        IdsOfUsersWhoJoined.forEach((userId) => {
+        idsOfUsersWhoJoined.forEach((userId) => {
           Logger.log(`Joined ${userId}`);
           this.playAudioClip(
             this.getSelectedSpeakerVoice().audioClips.userJoinedYourChannel
           );
         });
 
-        IdsOfUsersWhoLeft.forEach((userId) => {
+        idsOfUsersWhoLeft.forEach((userId) => {
           Logger.log(`Left ${userId}`);
           this.playAudioClip(
             this.getSelectedSpeakerVoice().audioClips.userLeftYourChannel
@@ -241,35 +252,37 @@ module.exports = (Plugin, Library) => {
     channelSwitchedListenerHandler(e) {
       if (!this.shouldMakeSound()) return;
 
-      const eventChannelId = e.channelId;
+      Logger.info(e);
+
+      const eventVoiceChannelId = e.channelId;
 
       //if this is true it means that channel wasn't changed
-      if (eventChannelId == this.cachedChannelId) return;
+      if (eventVoiceChannelId == this.cachedVoiceChannelId) return;
 
-      if (eventChannelId == null) {
+      if (eventVoiceChannelId == null) {
         //this means we have disconnected from voice channel
         //there could be an announcement made for this.
         this.playAudioClip(
           this.getSelectedSpeakerVoice().audioClips.disconnected
         );
 
-        //emptying the array because the user disconnected from the channel to avoid announcements when re-connecting to the same channel
         this.refreshCurrentVoiceChannelUsersIdsCache();
-        this.cachedChannelId = eventChannelId;
+        this.cachedVoiceChannelId = eventVoiceChannelId;
         return;
       }
 
-      if (this.cachedChannelId == null) {
+      if (this.cachedVoiceChannelId == null) {
         //this means we have connected to a voice channel for the first time
         //so there could be a "connected" announcement
 
+        Logger.info(e);
         this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.connected);
         this.refreshCurrentVoiceChannelUsersIdsCache();
-        this.cachedChannelId = eventChannelId;
+        this.cachedVoiceChannelId = eventVoiceChannelId;
         return;
       }
 
-      this.cachedChannelId = eventChannelId;
+      this.cachedVoiceChannelId = eventVoiceChannelId;
       this.refreshCurrentVoiceChannelUsersIdsCache();
       this.playAudioClip(
         this.getSelectedSpeakerVoice().audioClips.channelSwitched
