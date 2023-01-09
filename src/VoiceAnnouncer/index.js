@@ -149,16 +149,21 @@ module.exports = (Plugin, Library) => {
     voiceChannelUpdateListenerHandler(_) {
       try {
         if (!this.shouldMakeSound()) return;
+        Logger.info('here');
+        // Logger.info(`this.cachedVoiceChannelId ${this.cachedVoiceChannelId}`);
+        // Logger.info(
+        //   `DisSelectedChannelStore.getVoiceChannelId() ${DisSelectedChannelStore.getVoiceChannelId()}`
+        // );
 
         //do not carry on if we're not in the same channel because that means that we have either just connected or disconnected
+
         if (
-          this.cachedVoiceChannelId !=
-            DisSelectedChannelStore.getVoiceChannelId() ||
-          this.cachedVoiceChannelId == null ||
+          (this.cachedVoiceChannelId != null &&
+            this.cachedVoiceChannelId !=
+              DisSelectedChannelStore.getVoiceChannelId()) ||
           DisSelectedChannelStore.getVoiceChannelId() == null
         )
           return;
-
         this.cachedVoiceChannelId = DisSelectedChannelStore.getVoiceChannelId();
 
         const voiceStatesForCurrentVoiceChannelObject =
