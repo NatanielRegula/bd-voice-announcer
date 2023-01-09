@@ -64,9 +64,6 @@ module.exports = (Plugin, Library) => {
         // VOICE_ACTIVITY
       ];
 
-      //cache
-      // this.cachedVoiceChannelId = null;
-
       this.cachedVoiceChannelId =
         DisSelectedChannelStore.getVoiceChannelId() ?? null;
 
@@ -179,30 +176,11 @@ module.exports = (Plugin, Library) => {
       try {
         if (!this.shouldMakeSound()) return;
 
-        //do not carry on if we're not in the same channel because that means that we have either just connected or disconnected
-        // if (
-        //   (this.cachedVoiceChannelId != null &&
-        //     this.cachedVoiceChannelId !=
-        //       DisSelectedChannelStore.getVoiceChannelId()) ||
-        //   DisSelectedChannelStore.getVoiceChannelId() == null
-        // )
-        //   return;
         const eventVoiceChannelId = DisSelectedChannelStore.getVoiceChannelId();
 
-        if (this.cachedVoiceChannelId == null) {
-          Logger.debug(
-            'this.cachedVoiceChannelId is null we werent in a channel'
-          );
-
-          return;
-        }
-        if (eventVoiceChannelId == null) {
-          Logger.debug("we're not in a voice channel");
-          return;
-        }
-        if (eventVoiceChannelId != this.cachedVoiceChannelId) {
-          return;
-        }
+        if (this.cachedVoiceChannelId == null) return;
+        if (eventVoiceChannelId == null) return;
+        if (eventVoiceChannelId != this.cachedVoiceChannelId) return;
 
         const currentVoiceChannelUsersIds =
           this.getCurrentVoiceChannelUsersIds();
@@ -217,13 +195,6 @@ module.exports = (Plugin, Library) => {
 
         //this is used for the next time this function runs
         this.refreshCurrentVoiceChannelUsersIdsCache();
-
-        // if (
-        //   this.cachedCurrentUserId == null ||
-        //   this.cachedCurrentUserId == undefined
-        // ) {
-        //   this.cachedCurrentUserId = DisUserStore.getCurrentUser().id;
-        // }
 
         //if the users id is in this list it means that we just connected
         if (idsOfUsersWhoJoined.includes(this.cachedCurrentUserId)) return;
