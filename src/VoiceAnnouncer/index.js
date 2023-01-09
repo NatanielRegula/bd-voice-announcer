@@ -203,14 +203,12 @@ module.exports = (Plugin, Library) => {
         if (idsOfUsersWhoLeft.includes(this.cachedCurrentUserId)) return;
 
         idsOfUsersWhoJoined.forEach((userId) => {
-          Logger.log(`Joined ${userId}`);
           this.playAudioClip(
             this.getSelectedSpeakerVoice().audioClips.userJoinedYourChannel
           );
         });
 
         idsOfUsersWhoLeft.forEach((userId) => {
-          Logger.log(`Left ${userId}`);
           this.playAudioClip(
             this.getSelectedSpeakerVoice().audioClips.userLeftYourChannel
           );
@@ -222,8 +220,6 @@ module.exports = (Plugin, Library) => {
 
     channelSwitchedListenerHandler(e) {
       if (!this.shouldMakeSound()) return;
-
-      Logger.info(e);
 
       const eventVoiceChannelId = e.channelId;
 
@@ -246,7 +242,6 @@ module.exports = (Plugin, Library) => {
         //this means we have connected to a voice channel for the first time
         //so there could be a "connected" announcement
 
-        Logger.info(e);
         this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.connected);
         this.refreshCurrentVoiceChannelUsersIdsCache();
         this.cachedVoiceChannelId = eventVoiceChannelId;
