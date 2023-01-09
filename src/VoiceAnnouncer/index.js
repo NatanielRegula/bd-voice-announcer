@@ -71,6 +71,16 @@ module.exports = (Plugin, Library) => {
 
       this.cachedCurrentVoiceChannelUsersIds = [];
       this.cachedCurrentUserId = DisUserStore.getCurrentUser().id;
+
+      //misc
+      this.getCurrentVoiceChannelUsersIds =
+        this.getCurrentVoiceChannelUsersIds.bind(this);
+      this.refreshCurrentVoiceChannelUsersIdsCache =
+        this.refreshCurrentVoiceChannelUsersIdsCache.bind(this);
+
+      if (this.cachedVoiceChannelId != null) {
+        this.refreshCurrentVoiceChannelUsersIdsCache();
+      }
     }
     getAllVoices() {
       const allVoices = [
@@ -146,6 +156,24 @@ module.exports = (Plugin, Library) => {
       }
     }
 
+    getCurrentVoiceChannelUsersIds() {
+      const voiceStatesForCurrentVoiceChannelObject =
+        DisVoiceStateStore.getVoiceStatesForChannel(
+          DisSelectedChannelStore.getVoiceChannelId()
+        );
+
+      const currentVoiceChannelUsersIds = Object.keys(
+        voiceStatesForCurrentVoiceChannelObject
+      ).map((key) => voiceStatesForCurrentVoiceChannelObject[key].userId);
+
+      return currentVoiceChannelUsersIds;
+    }
+
+    refreshCurrentVoiceChannelUsersIdsCache() {
+      this.cachedCurrentVoiceChannelUsersIds =
+        this.getCurrentVoiceChannelUsersIds();
+    }
+
     voiceChannelUpdateListenerHandler(_) {
       try {
         if (!this.shouldMakeSound()) return;
@@ -166,14 +194,8 @@ module.exports = (Plugin, Library) => {
           return;
         this.cachedVoiceChannelId = DisSelectedChannelStore.getVoiceChannelId();
 
-        const voiceStatesForCurrentVoiceChannelObject =
-          DisVoiceStateStore.getVoiceStatesForChannel(
-            DisSelectedChannelStore.getVoiceChannelId()
-          );
-
-        const currentVoiceChannelUsersIds = Object.keys(
-          voiceStatesForCurrentVoiceChannelObject
-        ).map((key) => voiceStatesForCurrentVoiceChannelObject[key].userId);
+        const currentVoiceChannelUsersIds =
+          this.getCurrentVoiceChannelUsersIds();
 
         const IdsOfUsersWhoJoined = currentVoiceChannelUsersIds.filter(
           (state) => !this.cachedCurrentVoiceChannelUsersIds.includes(state)
@@ -183,7 +205,8 @@ module.exports = (Plugin, Library) => {
           (state) => !currentVoiceChannelUsersIds.includes(state)
         );
 
-        this.cachedCurrentVoiceChannelUsersIds = currentVoiceChannelUsersIds;
+        this.refreshCurrentVoiceChannelUsersIdsCache();
+
         if (
           this.cachedCurrentUserId == null ||
           this.cachedCurrentUserId == undefined
@@ -231,7 +254,7 @@ module.exports = (Plugin, Library) => {
         );
 
         //emptying the array because the user disconnected from the channel to avoid announcements when re-connecting to the same channel
-        this.cachedCurrentVoiceChannelUsersIds = [];
+        this.refreshCurrentVoiceChannelUsersIdsCache();
         this.cachedChannelId = eventChannelId;
         return;
       }
@@ -241,12 +264,13 @@ module.exports = (Plugin, Library) => {
         //so there could be a "connected" announcement
 
         this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.connected);
+        this.refreshCurrentVoiceChannelUsersIdsCache();
         this.cachedChannelId = eventChannelId;
         return;
       }
 
       this.cachedChannelId = eventChannelId;
-      this.cachedCurrentVoiceChannelUsersIds = [];
+      this.refreshCurrentVoiceChannelUsersIdsCache();
       this.playAudioClip(
         this.getSelectedSpeakerVoice().audioClips.channelSwitched
       );
