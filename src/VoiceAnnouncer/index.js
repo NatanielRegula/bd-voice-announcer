@@ -43,13 +43,13 @@ module.exports = (Plugin, Library) => {
     constructor() {
       super();
 
-      //audio
+      ///-----Audio-----///
       this.playAudioClip = this.playAudioClip.bind(this);
       this.shouldMakeSound = this.shouldMakeSound.bind(this);
       this.getSelectedSpeakerVoice = this.getSelectedSpeakerVoice.bind(this);
       this.getAllVoices = this.getAllVoices.bind(this);
 
-      //event listener handlers
+      ///-----Event listener handlers-----///
       this.checkMuteStatusListenerHandler =
         this.checkMuteStatusListenerHandler.bind(this);
       this.checkDeafenedStatusListenerHandler =
@@ -59,9 +59,9 @@ module.exports = (Plugin, Library) => {
       this.voiceChannelUpdateListenerHandler =
         this.voiceChannelUpdateListenerHandler.bind(this);
 
+      ///-----Event listeners subscriptions-----///
       this.setUpListeners = this.setUpListeners.bind(this);
       this.disposeListeners = this.disposeListeners.bind(this);
-
       this.disEventListenerPairs = [
         ['AUDIO_TOGGLE_SELF_MUTE', this.checkMuteStatusListenerHandler],
         ['AUDIO_TOGGLE_SELF_DEAF', this.checkDeafenedStatusListenerHandler],
@@ -83,21 +83,24 @@ module.exports = (Plugin, Library) => {
         // VOICE_ACTIVITY
       ];
 
-      //cache
+      ///-----Cached values-----///
+      //voice channel actions [connected,disconnected,channel_switched,user_left_your_channel,user_joined_your_channel]
+      this.cachedCurrentUserId = DisUserStore.getCurrentUser().id;
       this.cachedVoiceChannelId =
         DisSelectedChannelStore.getVoiceChannelId() ?? null;
       this.cachedCurrentVoiceChannelUsersIds = [];
-      this.cachedCurrentUserId = DisUserStore.getCurrentUser().id;
-
+      //stock sounds
       this.stockSoundsManipulated = false;
       this.stockSoundsDisabledBeforeManipulated =
         DisNotificationSettingsStore.getDisabledSounds() ?? [];
 
-      //misc
+      ///-----Adding context to methods-----///
+      //voice channel actions [connected,disconnected,channel_switched,user_left_your_channel,user_joined_your_channel]
       this.getCurrentVoiceChannelUsersIds =
         this.getCurrentVoiceChannelUsersIds.bind(this);
       this.refreshCurrentVoiceChannelUsersIdsCache =
         this.refreshCurrentVoiceChannelUsersIdsCache.bind(this);
+      //stock sounds
       this.disableStockDisSounds = this.disableStockDisSounds.bind(this);
       this.restoreStockDisSounds = this.restoreStockDisSounds.bind(this);
     }
