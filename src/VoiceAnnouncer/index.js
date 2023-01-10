@@ -19,6 +19,10 @@ module.exports = (Plugin, Library) => {
   const DisMediaInfo = DiscordModules.MediaInfo;
   const DisSelectedChannelStore = DiscordModules.SelectedChannelStore;
   const DisUserStore = DiscordModules.UserStore;
+  const DisNotificationSettingsStore =
+    WebpackModules.getByProps('isSoundDisabled');
+  const DisNotificationSettingsController =
+    WebpackModules.getByProps('setDisabledSounds');
 
   const voicesJson = JSON.parse(require('voices.json'));
 
@@ -27,6 +31,11 @@ module.exports = (Plugin, Library) => {
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
       super();
+
+      // WebpackModules.getByProps('setDisabledSounds').toggleDisableAllSounds();
+
+      // searchByAnything('isSoundDisabled').isSoundDisabled(); //NotificationSettingsStore     --these two seem to do the same thing
+      // searchByAnything('isSoundDisabled').getDisableAllSounds(); //NotificationSettingsStore --but this one is the one i should use i think
 
       //audio
       this.playAudioClip = this.playAudioClip.bind(this);
@@ -53,6 +62,11 @@ module.exports = (Plugin, Library) => {
         ['VOICE_CHANNEL_SELECT', this.channelSwitchedListenerHandler],
         ['VOICE_STATE_UPDATES', this.voiceChannelUpdateListenerHandler],
 
+        [
+          'NOTIFICATIONS_TOGGLE_ALL_DISABLED',
+          this.checkTestStatusListenerHandler,
+        ],
+
         // ['SPEAKING', this.checkTestStatusListenerHandler],
         // ['CHANNEL_UPDATES', this.checkTestStatusListenerHandler],
         // ['CALL_UPDATE', this.checkTestStatusListenerHandler],
@@ -63,20 +77,40 @@ module.exports = (Plugin, Library) => {
         // VOICE_ACTIVITY
       ];
 
+      //cache
       this.cachedVoiceChannelId =
         DisSelectedChannelStore.getVoiceChannelId() ?? null;
-
       this.cachedCurrentVoiceChannelUsersIds = [];
       this.cachedCurrentUserId = DisUserStore.getCurrentUser().id;
+      this.stockSoundsManipulated = false;
 
       //misc
       this.getCurrentVoiceChannelUsersIds =
         this.getCurrentVoiceChannelUsersIds.bind(this);
       this.refreshCurrentVoiceChannelUsersIdsCache =
         this.refreshCurrentVoiceChannelUsersIdsCache.bind(this);
+      this.disableStockDisSounds = this.disableStockDisSounds.bind(this);
+      this.restoreStockDisSounds = this.restoreStockDisSounds.bind(this);
 
       if (this.cachedVoiceChannelId != null) {
         this.refreshCurrentVoiceChannelUsersIdsCache();
+      }
+    }
+
+    disableStockDisSounds() {
+      if (!this.settings.audioSettings.disableDiscordStockSounds ?? true)
+        return;
+      if (!DisNotificationSettingsStore.getDisableAllSounds()) {
+        DisNotificationSettingsController.toggleDisableAllSounds();
+        this.stockSoundsManipulated = true;
+      }
+    }
+
+    restoreStockDisSounds() {
+      if (!this.stockSoundsManipulated) return;
+
+      if (DisNotificationSettingsStore.getDisableAllSounds()) {
+        DisNotificationSettingsController.toggleDisableAllSounds();
       }
     }
 
@@ -286,6 +320,8 @@ module.exports = (Plugin, Library) => {
 
     onStart() {
       Logger.info('Plugin enabled!');
+      Logger.info(this.settings);
+      this.disableStockDisSounds();
       if (window.voiceAnnouncerAdditionalVoicesArray === undefined) {
         window.voiceAnnouncerAdditionalVoicesArray = [];
       }
@@ -313,6 +349,20 @@ module.exports = (Plugin, Library) => {
           },
         })
       );
+      settingsPanel.append(
+        this.buildSetting({
+          type: 'switch',
+          id: 'disableDiscordStockSounds',
+          name: "Disable Discord's stock sounds",
+          note: 'If true the default/stock/native sounds that discord makes will be disabled to make space for the voice announcements.',
+          value: this.settings.audioSettings.disableDiscordStockSounds ?? true,
+
+          onChange: (value) => {
+            this.settings.audioSettings['disableDiscordStockSounds'] = value;
+            this.disableStockDisSounds();
+          },
+        })
+      );
 
       return settingsPanel.getElement();
     }
@@ -320,6 +370,7 @@ module.exports = (Plugin, Library) => {
     onStop() {
       Logger.info('Plugin disabled!');
       window.voiceAnnouncerAdditionalVoicesArray = undefined;
+      this.restoreStockDisSounds();
       this.disposeListeners();
     }
   };
