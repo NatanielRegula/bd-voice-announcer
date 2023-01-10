@@ -98,10 +98,6 @@ module.exports = (Plugin, Library) => {
         this.refreshCurrentVoiceChannelUsersIdsCache.bind(this);
       this.disableStockDisSounds = this.disableStockDisSounds.bind(this);
       this.restoreStockDisSounds = this.restoreStockDisSounds.bind(this);
-
-      if (this.cachedVoiceChannelId != null) {
-        this.refreshCurrentVoiceChannelUsersIdsCache();
-      }
     }
 
     disableStockDisSounds() {
@@ -333,11 +329,17 @@ module.exports = (Plugin, Library) => {
 
     onStart() {
       Logger.info('Plugin enabled!');
-      Logger.info(this.settings);
+
       this.disableStockDisSounds();
+
+      if (this.cachedVoiceChannelId != null) {
+        this.refreshCurrentVoiceChannelUsersIdsCache();
+      }
+
       if (window.voiceAnnouncerAdditionalVoicesArray === undefined) {
         window.voiceAnnouncerAdditionalVoicesArray = [];
       }
+
       this.setUpListeners();
     }
 
