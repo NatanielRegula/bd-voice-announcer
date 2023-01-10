@@ -88,8 +88,10 @@ module.exports = (Plugin, Library) => {
         DisSelectedChannelStore.getVoiceChannelId() ?? null;
       this.cachedCurrentVoiceChannelUsersIds = [];
       this.cachedCurrentUserId = DisUserStore.getCurrentUser().id;
+
       this.stockSoundsManipulated = false;
-      this.stockSoundsDisabledBeforeManipulated = [];
+      this.stockSoundsDisabledBeforeManipulated =
+        DisNotificationSettingsStore.getDisabledSounds() ?? [];
 
       //misc
       this.getCurrentVoiceChannelUsersIds =
@@ -103,9 +105,6 @@ module.exports = (Plugin, Library) => {
     disableStockDisSounds() {
       if (!this.settings.audioSettings.disableDiscordStockSounds ?? true)
         return;
-
-      this.stockSoundsDisabledBeforeManipulated =
-        DisNotificationSettingsStore.getDisabledSounds();
 
       DisNotificationSettingsController.setDisabledSounds([
         ...SOUNDS_THAT_THIS_PLUGIN_REPLACES,
@@ -374,7 +373,11 @@ module.exports = (Plugin, Library) => {
 
           onChange: (value) => {
             this.settings.audioSettings['disableDiscordStockSounds'] = value;
-            this.disableStockDisSounds();
+            if (value) {
+              this.disableStockDisSounds();
+            } else {
+              this.restoreStockDisSounds();
+            }
           },
         })
       );
