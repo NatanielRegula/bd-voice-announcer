@@ -11,13 +11,33 @@ module.exports = (Plugin, Library) => {
   const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
 
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
+  const DisVoiceStateStore = WebpackModules.getByProps(
+    'getVoiceStateForUser',
+    'getVoiceStatesForChannel'
+  );
   const DisStreamerModeStore = DiscordModules.StreamerModeStore;
   const DisMediaInfo = DiscordModules.MediaInfo;
   const DisSelectedChannelStore = DiscordModules.SelectedChannelStore;
+  const DisUserStore = DiscordModules.UserStore;
+  const DisNotificationSettingsStore =
+    WebpackModules.getByProps('isSoundDisabled');
+  const DisNotificationSettingsController =
+    WebpackModules.getByProps('setDisabledSounds');
 
   const voicesJson = JSON.parse(require('voices.json'));
 
   const localVoices = [...voicesJson.female, ...voicesJson.male];
+
+  const SOUNDS_THAT_THIS_PLUGIN_REPLACES = [
+    'deafen',
+    'undeafen',
+    'mute',
+    'unmute',
+    'disconnect',
+    'user_join',
+    'user_leave',
+    'user_moved',
+  ];
 
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
@@ -36,6 +56,8 @@ module.exports = (Plugin, Library) => {
         this.checkDeafenedStatusListenerHandler.bind(this);
       this.channelSwitchedListenerHandler =
         this.channelSwitchedListenerHandler.bind(this);
+      this.voiceChannelUpdateListenerHandler =
+        this.voiceChannelUpdateListenerHandler.bind(this);
 
       this.setUpListeners = this.setUpListeners.bind(this);
       this.disposeListeners = this.disposeListeners.bind(this);
@@ -43,16 +65,64 @@ module.exports = (Plugin, Library) => {
       this.disEventListenerPairs = [
         ['AUDIO_TOGGLE_SELF_MUTE', this.checkMuteStatusListenerHandler],
         ['AUDIO_TOGGLE_SELF_DEAF', this.checkDeafenedStatusListenerHandler],
-        // ['SPEAKING', this.checkTestStatusListenerHandler],
         ['VOICE_CHANNEL_SELECT', this.channelSwitchedListenerHandler],
-        // ['VOICE_STATE_UPDATES', this.checkTestStatusListenerHandler],
-        // ['SPEAK_MESSAGE', this.checkTestStatusListenerHandler],
-        // ['GUILD_MEMBER_UPDATE', this.checkTestStatusListenerHandler],
+        ['VOICE_STATE_UPDATES', this.voiceChannelUpdateListenerHandler],
+
+        [
+          'NOTIFICATIONS_TOGGLE_ALL_DISABLED',
+          this.checkTestStatusListenerHandler,
+        ],
+
+        // ['SPEAKING', this.checkTestStatusListenerHandler],
+        // ['CHANNEL_UPDATES', this.checkTestStatusListenerHandler],
+        // ['CALL_UPDATE', this.checkTestStatusListenerHandler],
+        // ['VIDEO_BACKGROUND_SHOW_FEEDBACK', this.checkTestStatusListenerHandler],
+        // ['VOICE_CHANNEL_SELECT', this.checkTestStatusListenerHandler],
+        // ['VOICE_CHANNEL_SHOW_FEEDBACK', this.checkTestStatusListenerHandler],
+        // ['CHANNEL_RECIPIENT_ADD', this.checkTestStatusListenerHandler],
+        // VOICE_ACTIVITY
       ];
 
       //cache
-      this.cachedChannelId = DisSelectedChannelStore.getChannelId() ?? null;
+      this.cachedVoiceChannelId =
+        DisSelectedChannelStore.getVoiceChannelId() ?? null;
+      this.cachedCurrentVoiceChannelUsersIds = [];
+      this.cachedCurrentUserId = DisUserStore.getCurrentUser().id;
+      this.stockSoundsManipulated = false;
+      this.stockSoundsDisabledBeforeManipulated = [];
+
+      //misc
+      this.getCurrentVoiceChannelUsersIds =
+        this.getCurrentVoiceChannelUsersIds.bind(this);
+      this.refreshCurrentVoiceChannelUsersIdsCache =
+        this.refreshCurrentVoiceChannelUsersIdsCache.bind(this);
+      this.disableStockDisSounds = this.disableStockDisSounds.bind(this);
+      this.restoreStockDisSounds = this.restoreStockDisSounds.bind(this);
     }
+
+    disableStockDisSounds() {
+      if (!this.settings.audioSettings.disableDiscordStockSounds ?? true)
+        return;
+
+      this.stockSoundsDisabledBeforeManipulated =
+        DisNotificationSettingsStore.getDisabledSounds();
+
+      DisNotificationSettingsController.setDisabledSounds([
+        ...SOUNDS_THAT_THIS_PLUGIN_REPLACES,
+        ...this.stockSoundsDisabledBeforeManipulated,
+      ]);
+
+      this.stockSoundsManipulated = true;
+    }
+
+    restoreStockDisSounds() {
+      if (!this.stockSoundsManipulated) return;
+
+      DisNotificationSettingsController.setDisabledSounds(
+        this.stockSoundsDisabledBeforeManipulated
+      );
+    }
+
     getAllVoices() {
       const allVoices = [
         ...localVoices,
@@ -60,6 +130,7 @@ module.exports = (Plugin, Library) => {
       ];
       return allVoices;
     }
+
     shouldMakeSound() {
       return !(
         this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
@@ -127,33 +198,102 @@ module.exports = (Plugin, Library) => {
       }
     }
 
+    getCurrentVoiceChannelUsersIds() {
+      const voiceStatesForCurrentVoiceChannelObject =
+        DisVoiceStateStore.getVoiceStatesForChannel(
+          DisSelectedChannelStore.getVoiceChannelId()
+        );
+
+      const currentVoiceChannelUsersIds = Object.keys(
+        voiceStatesForCurrentVoiceChannelObject
+      ).map((key) => voiceStatesForCurrentVoiceChannelObject[key].userId);
+
+      return currentVoiceChannelUsersIds;
+    }
+
+    refreshCurrentVoiceChannelUsersIdsCache() {
+      this.cachedCurrentVoiceChannelUsersIds =
+        this.getCurrentVoiceChannelUsersIds();
+    }
+
+    voiceChannelUpdateListenerHandler(_) {
+      try {
+        if (!this.shouldMakeSound()) return;
+
+        const eventVoiceChannelId = DisSelectedChannelStore.getVoiceChannelId();
+
+        if (this.cachedVoiceChannelId == null) return;
+        if (eventVoiceChannelId == null) return;
+        if (eventVoiceChannelId != this.cachedVoiceChannelId) return;
+
+        const currentVoiceChannelUsersIds =
+          this.getCurrentVoiceChannelUsersIds();
+
+        const idsOfUsersWhoJoined = currentVoiceChannelUsersIds.filter(
+          (state) => !this.cachedCurrentVoiceChannelUsersIds.includes(state)
+        );
+
+        const idsOfUsersWhoLeft = this.cachedCurrentVoiceChannelUsersIds.filter(
+          (state) => !currentVoiceChannelUsersIds.includes(state)
+        );
+
+        //this is used for the next time this function runs
+        this.refreshCurrentVoiceChannelUsersIdsCache();
+
+        //if the users id is in this list it means that we just connected
+        if (idsOfUsersWhoJoined.includes(this.cachedCurrentUserId)) return;
+
+        //if the users id is in this list it means that we just disconnected
+        if (idsOfUsersWhoLeft.includes(this.cachedCurrentUserId)) return;
+
+        idsOfUsersWhoJoined.forEach((userId) => {
+          this.playAudioClip(
+            this.getSelectedSpeakerVoice().audioClips.userJoinedYourChannel
+          );
+        });
+
+        idsOfUsersWhoLeft.forEach((userId) => {
+          this.playAudioClip(
+            this.getSelectedSpeakerVoice().audioClips.userLeftYourChannel
+          );
+        });
+      } catch (error) {
+        Logger.error(error);
+      }
+    }
+
     channelSwitchedListenerHandler(e) {
       if (!this.shouldMakeSound()) return;
 
-      const eventChannelId = e.channelId;
+      const eventVoiceChannelId = e.channelId;
 
       //if this is true it means that channel wasn't changed
-      if (eventChannelId == this.cachedChannelId) return;
+      if (eventVoiceChannelId == this.cachedVoiceChannelId) return;
 
-      if (eventChannelId == null) {
+      if (eventVoiceChannelId == null) {
         //this means we have disconnected from voice channel
         //there could be an announcement made for this.
         this.playAudioClip(
           this.getSelectedSpeakerVoice().audioClips.disconnected
         );
-        this.cachedChannelId = eventChannelId;
+
+        this.refreshCurrentVoiceChannelUsersIdsCache();
+        this.cachedVoiceChannelId = eventVoiceChannelId;
         return;
       }
 
-      if (this.cachedChannelId == null) {
+      if (this.cachedVoiceChannelId == null) {
         //this means we have connected to a voice channel for the first time
         //so there could be a "connected" announcement
+
         this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.connected);
-        this.cachedChannelId = eventChannelId;
+        this.refreshCurrentVoiceChannelUsersIdsCache();
+        this.cachedVoiceChannelId = eventVoiceChannelId;
         return;
       }
 
-      this.cachedChannelId = eventChannelId;
+      this.cachedVoiceChannelId = eventVoiceChannelId;
+      this.refreshCurrentVoiceChannelUsersIdsCache();
       this.playAudioClip(
         this.getSelectedSpeakerVoice().audioClips.channelSwitched
       );
@@ -161,6 +301,7 @@ module.exports = (Plugin, Library) => {
 
     checkTestStatusListenerHandler(e) {
       // if (!this.shouldMakeSound()) return;
+      Logger.info('test event fired');
       Logger.info(e);
       // if (
       //   this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
@@ -175,6 +316,7 @@ module.exports = (Plugin, Library) => {
       //   this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.unmuted);
       // }
     }
+
     checkMuteStatusListenerHandler() {
       if (!this.shouldMakeSound()) return;
 
@@ -187,9 +329,17 @@ module.exports = (Plugin, Library) => {
 
     onStart() {
       Logger.info('Plugin enabled!');
+
+      this.disableStockDisSounds();
+
+      if (this.cachedVoiceChannelId != null) {
+        this.refreshCurrentVoiceChannelUsersIdsCache();
+      }
+
       if (window.voiceAnnouncerAdditionalVoicesArray === undefined) {
         window.voiceAnnouncerAdditionalVoicesArray = [];
       }
+
       this.setUpListeners();
     }
 
@@ -214,6 +364,20 @@ module.exports = (Plugin, Library) => {
           },
         })
       );
+      settingsPanel.append(
+        this.buildSetting({
+          type: 'switch',
+          id: 'disableDiscordStockSounds',
+          name: "Disable Discord's stock sounds",
+          note: "If true the default/stock/native sounds that discord makes will be disabled by overwriting your settings to make space for the voice announcements. This setting will overwrite discord's notification settings the the current session but the plugin will try to restore original settings when disabled.",
+          value: this.settings.audioSettings.disableDiscordStockSounds ?? true,
+
+          onChange: (value) => {
+            this.settings.audioSettings['disableDiscordStockSounds'] = value;
+            this.disableStockDisSounds();
+          },
+        })
+      );
 
       return settingsPanel.getElement();
     }
@@ -221,6 +385,7 @@ module.exports = (Plugin, Library) => {
     onStop() {
       Logger.info('Plugin disabled!');
       window.voiceAnnouncerAdditionalVoicesArray = undefined;
+      this.restoreStockDisSounds();
       this.disposeListeners();
     }
   };
