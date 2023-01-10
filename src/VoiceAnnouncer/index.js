@@ -369,7 +369,7 @@ module.exports = (Plugin, Library) => {
           type: 'switch',
           id: 'disableDiscordStockSounds',
           name: "Disable Discord's stock sounds",
-          note: 'If true the default/stock/native sounds that discord makes will be disabled to make space for the voice announcements.',
+          note: "If true the default/stock/native sounds that discord makes will be disabled by overwriting your settings to make space for the voice announcements. This setting will overwrite discord's notification settings the the current session but the plugin will try to restore original settings when disabled.",
           value: this.settings.audioSettings.disableDiscordStockSounds ?? true,
 
           onChange: (value) => {
