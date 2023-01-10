@@ -43,13 +43,13 @@ module.exports = (Plugin, Library) => {
     constructor() {
       super();
 
-      //audio
+      ///-----Audio-----///
       this.playAudioClip = this.playAudioClip.bind(this);
       this.shouldMakeSound = this.shouldMakeSound.bind(this);
       this.getSelectedSpeakerVoice = this.getSelectedSpeakerVoice.bind(this);
       this.getAllVoices = this.getAllVoices.bind(this);
 
-      //event listener handlers
+      ///-----Event Listener Handlers-----///
       this.checkMuteStatusListenerHandler =
         this.checkMuteStatusListenerHandler.bind(this);
       this.checkDeafenedStatusListenerHandler =
@@ -59,9 +59,9 @@ module.exports = (Plugin, Library) => {
       this.voiceChannelUpdateListenerHandler =
         this.voiceChannelUpdateListenerHandler.bind(this);
 
+      ///-----Event Listeners Subscriptions-----///
       this.setUpListeners = this.setUpListeners.bind(this);
       this.disposeListeners = this.disposeListeners.bind(this);
-
       this.disEventListenerPairs = [
         ['AUDIO_TOGGLE_SELF_MUTE', this.checkMuteStatusListenerHandler],
         ['AUDIO_TOGGLE_SELF_DEAF', this.checkDeafenedStatusListenerHandler],
@@ -83,121 +83,29 @@ module.exports = (Plugin, Library) => {
         // VOICE_ACTIVITY
       ];
 
-      //cache
+      ///-----Cached Values-----///
+      //voice channel actions [connected,disconnected,channel_switched,user_left_your_channel,user_joined_your_channel]
+      this.cachedCurrentUserId = DisUserStore.getCurrentUser().id;
       this.cachedVoiceChannelId =
         DisSelectedChannelStore.getVoiceChannelId() ?? null;
       this.cachedCurrentVoiceChannelUsersIds = [];
-      this.cachedCurrentUserId = DisUserStore.getCurrentUser().id;
+      //stock sounds
       this.stockSoundsManipulated = false;
-      this.stockSoundsDisabledBeforeManipulated = [];
+      this.stockSoundsDisabledBeforeManipulated =
+        DisNotificationSettingsStore.getDisabledSounds() ?? [];
 
-      //misc
+      ///-----Adding Context To Methods-----///
+      //voice channel actions [connected,disconnected,channel_switched,user_left_your_channel,user_joined_your_channel]
       this.getCurrentVoiceChannelUsersIds =
         this.getCurrentVoiceChannelUsersIds.bind(this);
       this.refreshCurrentVoiceChannelUsersIdsCache =
         this.refreshCurrentVoiceChannelUsersIdsCache.bind(this);
+      //stock sounds
       this.disableStockDisSounds = this.disableStockDisSounds.bind(this);
       this.restoreStockDisSounds = this.restoreStockDisSounds.bind(this);
     }
 
-    disableStockDisSounds() {
-      if (!this.settings.audioSettings.disableDiscordStockSounds ?? true)
-        return;
-
-      this.stockSoundsDisabledBeforeManipulated =
-        DisNotificationSettingsStore.getDisabledSounds();
-
-      DisNotificationSettingsController.setDisabledSounds([
-        ...SOUNDS_THAT_THIS_PLUGIN_REPLACES,
-        ...this.stockSoundsDisabledBeforeManipulated,
-      ]);
-
-      this.stockSoundsManipulated = true;
-    }
-
-    restoreStockDisSounds() {
-      if (!this.stockSoundsManipulated) return;
-
-      DisNotificationSettingsController.setDisabledSounds(
-        this.stockSoundsDisabledBeforeManipulated
-      );
-    }
-
-    getAllVoices() {
-      const allVoices = [
-        ...localVoices,
-        ...(window.voiceAnnouncerAdditionalVoicesArray ?? []),
-      ];
-      return allVoices;
-    }
-
-    shouldMakeSound() {
-      return !(
-        this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
-        DisStreamerModeStore.getSettings().enabled &&
-        DisStreamerModeStore.getSettings().disableSounds
-      );
-    }
-
-    setUpListeners() {
-      this.disEventListenerPairs.forEach((eventListenerPair) => {
-        Dispatcher.subscribe(...eventListenerPair);
-      });
-    }
-
-    disposeListeners() {
-      this.disEventListenerPairs.forEach((eventListenerPair) => {
-        Dispatcher.unsubscribe(...eventListenerPair);
-      });
-    }
-
-    playAudioClip(src) {
-      const audioPlayer = new Audio(src);
-      audioPlayer.volume = this.settings.audioSettings.voiceNotificationVolume;
-
-      audioPlayer.play().then(() => audioPlayer.remove());
-    }
-
-    getSelectedSpeakerVoice(overrideVoiceId) {
-      const allVoices = this.getAllVoices();
-      const selectedVoiceId =
-        overrideVoiceId ??
-        this.settings.audioSettings.speakerVoice ??
-        allVoices[0].id;
-
-      const voiceWithSelectedId = allVoices.filter(
-        (voice) => voice.id == selectedVoiceId
-      );
-
-      if (voiceWithSelectedId.length > 1) {
-        Logger.error(
-          'Two or more voices have the same id! This is not allowed. Fallback voice is being used!'
-        );
-        return allVoices[0];
-      }
-
-      if (voiceWithSelectedId.length < 1) {
-        Logger.error(
-          'Voice with selected ID could not be found. Fallback voice is being used!'
-        );
-        return allVoices[0];
-      }
-
-      return voiceWithSelectedId[0];
-    }
-
-    checkDeafenedStatusListenerHandler() {
-      if (!this.shouldMakeSound()) return;
-
-      if (DisMediaInfo.isSelfDeaf()) {
-        this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.deafened);
-      } else {
-        this.playAudioClip(
-          this.getSelectedSpeakerVoice().audioClips.undeafened
-        );
-      }
-    }
-
+    ///-----Misc-----///
     getCurrentVoiceChannelUsersIds() {
       const voiceStatesForCurrentVoiceChannelObject =
         DisVoiceStateStore.getVoiceStatesForChannel(
@@ -214,6 +122,19 @@ module.exports = (Plugin, Library) => {
     refreshCurrentVoiceChannelUsersIdsCache() {
       this.cachedCurrentVoiceChannelUsersIds =
         this.getCurrentVoiceChannelUsersIds();
+    }
+
+    ///-----Events Handlers-----///
+    checkDeafenedStatusListenerHandler() {
+      if (!this.shouldMakeSound()) return;
+
+      if (DisMediaInfo.isSelfDeaf()) {
+        this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.deafened);
+      } else {
+        this.playAudioClip(
+          this.getSelectedSpeakerVoice().audioClips.undeafened
+        );
+      }
     }
 
     voiceChannelUpdateListenerHandler(_) {
@@ -327,6 +248,7 @@ module.exports = (Plugin, Library) => {
       }
     }
 
+    ///-----Life Cycle & BD/Z Specific-----///
     onStart() {
       Logger.info('Plugin enabled!');
 
@@ -374,7 +296,11 @@ module.exports = (Plugin, Library) => {
 
           onChange: (value) => {
             this.settings.audioSettings['disableDiscordStockSounds'] = value;
-            this.disableStockDisSounds();
+            if (value) {
+              this.disableStockDisSounds();
+            } else {
+              this.restoreStockDisSounds();
+            }
           },
         })
       );
@@ -387,6 +313,97 @@ module.exports = (Plugin, Library) => {
       window.voiceAnnouncerAdditionalVoicesArray = undefined;
       this.restoreStockDisSounds();
       this.disposeListeners();
+    }
+
+    ///-----Voice Announcements-----///
+    getAllVoices() {
+      const allVoices = [
+        ...localVoices,
+        ...(window.voiceAnnouncerAdditionalVoicesArray ?? []),
+      ];
+      return allVoices;
+    }
+
+    getSelectedSpeakerVoice(overrideVoiceId) {
+      const allVoices = this.getAllVoices();
+      const selectedVoiceId =
+        overrideVoiceId ??
+        this.settings.audioSettings.speakerVoice ??
+        allVoices[0].id;
+
+      const voiceWithSelectedId = allVoices.filter(
+        (voice) => voice.id == selectedVoiceId
+      );
+
+      if (voiceWithSelectedId.length > 1) {
+        Logger.error(
+          'Two or more voices have the same id! This is not allowed. Fallback voice is being used!'
+        );
+        return allVoices[0];
+      }
+
+      if (voiceWithSelectedId.length < 1) {
+        Logger.error(
+          'Voice with selected ID could not be found. Fallback voice is being used!'
+        );
+        return allVoices[0];
+      }
+
+      return voiceWithSelectedId[0];
+    }
+
+    playAudioClip(src) {
+      const audioPlayer = new Audio(src);
+      audioPlayer.volume = this.settings.audioSettings.voiceNotificationVolume;
+
+      audioPlayer.play().then(() => audioPlayer.remove());
+    }
+
+    shouldMakeSound() {
+      return !(
+        this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
+        DisStreamerModeStore.getSettings().enabled &&
+        DisStreamerModeStore.getSettings().disableSounds
+      );
+    }
+
+    ///-----Stock Sounds Enable/Restore-----///
+    disableStockDisSounds() {
+      if (!this.settings.audioSettings.disableDiscordStockSounds ?? true)
+        return;
+
+      if (!this.stockSoundsManipulated) {
+        this.stockSoundsDisabledBeforeManipulated =
+          DisNotificationSettingsStore.getDisabledSounds();
+      }
+
+      DisNotificationSettingsController.setDisabledSounds([
+        ...SOUNDS_THAT_THIS_PLUGIN_REPLACES,
+        ...this.stockSoundsDisabledBeforeManipulated,
+      ]);
+
+      this.stockSoundsManipulated = true;
+    }
+
+    restoreStockDisSounds() {
+      if (!this.stockSoundsManipulated) return;
+
+      DisNotificationSettingsController.setDisabledSounds(
+        this.stockSoundsDisabledBeforeManipulated
+      );
+    }
+
+    ///-----Events Subscribing-----///
+    setUpListeners() {
+      this.disEventListenerPairs.forEach((eventListenerPair) => {
+        Dispatcher.subscribe(...eventListenerPair);
+      });
+    }
+
+    disposeListeners() {
+      this.disEventListenerPairs.forEach((eventListenerPair) => {
+        Dispatcher.unsubscribe(...eventListenerPair);
+      });
     }
   };
 };
