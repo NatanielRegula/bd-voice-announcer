@@ -372,6 +372,11 @@ module.exports = (Plugin, Library) => {
       if (!this.settings.audioSettings.disableDiscordStockSounds ?? true)
         return;
 
+      if (!this.stockSoundsManipulated) {
+        this.stockSoundsDisabledBeforeManipulated =
+          DisNotificationSettingsStore.getDisabledSounds();
+      }
+
       DisNotificationSettingsController.setDisabledSounds([
         ...SOUNDS_THAT_THIS_PLUGIN_REPLACES,
         ...this.stockSoundsDisabledBeforeManipulated,
