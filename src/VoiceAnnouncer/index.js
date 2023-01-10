@@ -28,14 +28,20 @@ module.exports = (Plugin, Library) => {
 
   const localVoices = [...voicesJson.female, ...voicesJson.male];
 
+  const SOUNDS_THAT_THIS_PLUGIN_REPLACES = [
+    'deafen',
+    'undeafen',
+    'mute',
+    'unmute',
+    'disconnect',
+    'user_join',
+    'user_leave',
+    'user_moved',
+  ];
+
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
       super();
-
-      // WebpackModules.getByProps('setDisabledSounds').toggleDisableAllSounds();
-
-      // searchByAnything('isSoundDisabled').isSoundDisabled(); //NotificationSettingsStore     --these two seem to do the same thing
-      // searchByAnything('isSoundDisabled').getDisableAllSounds(); //NotificationSettingsStore --but this one is the one i should use i think
 
       //audio
       this.playAudioClip = this.playAudioClip.bind(this);
@@ -83,6 +89,7 @@ module.exports = (Plugin, Library) => {
       this.cachedCurrentVoiceChannelUsersIds = [];
       this.cachedCurrentUserId = DisUserStore.getCurrentUser().id;
       this.stockSoundsManipulated = false;
+      this.stockSoundsDisabledBeforeManipulated = [];
 
       //misc
       this.getCurrentVoiceChannelUsersIds =
@@ -100,18 +107,24 @@ module.exports = (Plugin, Library) => {
     disableStockDisSounds() {
       if (!this.settings.audioSettings.disableDiscordStockSounds ?? true)
         return;
-      if (!DisNotificationSettingsStore.getDisableAllSounds()) {
-        DisNotificationSettingsController.toggleDisableAllSounds();
-        this.stockSoundsManipulated = true;
-      }
+
+      this.stockSoundsDisabledBeforeManipulated =
+        DisNotificationSettingsStore.getDisabledSounds();
+
+      DisNotificationSettingsController.setDisabledSounds([
+        ...SOUNDS_THAT_THIS_PLUGIN_REPLACES,
+        ...this.stockSoundsDisabledBeforeManipulated,
+      ]);
+
+      this.stockSoundsManipulated = true;
     }
 
     restoreStockDisSounds() {
       if (!this.stockSoundsManipulated) return;
 
-      if (DisNotificationSettingsStore.getDisableAllSounds()) {
-        DisNotificationSettingsController.toggleDisableAllSounds();
-      }
+      DisNotificationSettingsController.setDisabledSounds(
+        this.stockSoundsDisabledBeforeManipulated
+      );
     }
 
     getAllVoices() {
