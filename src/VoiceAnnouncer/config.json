@@ -5,14 +5,21 @@
     "author": "NR",
     "authorId": "",
     "authorLink": "",
-    "version": "0.0.9",
-    "description": "When the user switches between muted and unmuted the plugin will announce the currently set mode via audio notification.",
+    "version": "0.0.10",
+    "description": "Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.",
     "website": "",
     "source": "https://github.com/NatanielRegula/bd-voice-announcer",
     "patreon": "",
     "donate": "paypal.me/NatanielRegula",
     "invite": "",
     "changelog": [
+        {
+            "title": "0.0.10",
+            "type": "improved",
+            "items": [
+                "Added a setting (on by default) that will overwrite notification settings to disable discord's stock sounds that the plugin replaces with voice announcements"
+            ]
+        },
         {
             "title": "0.0.9",
             "type": "Fixed",
