@@ -68,11 +68,6 @@ module.exports = (Plugin, Library) => {
         ['VOICE_CHANNEL_SELECT', this.channelSwitchedListenerHandler],
         ['VOICE_STATE_UPDATES', this.voiceChannelUpdateListenerHandler],
 
-        [
-          'NOTIFICATIONS_TOGGLE_ALL_DISABLED',
-          this.checkTestStatusListenerHandler,
-        ],
-
         // ['SPEAKING', this.checkTestStatusListenerHandler],
         // ['CHANNEL_UPDATES', this.checkTestStatusListenerHandler],
         // ['CALL_UPDATE', this.checkTestStatusListenerHandler],
