@@ -122,7 +122,7 @@ const config = {
         {
             type: "category",
             id: "audioSettings",
-            name: "Audio Settings",
+            name: "Audio",
             shown: true,
             settings: [
                 {
@@ -139,8 +139,22 @@ const config = {
                     name: "Respect Streamer Mode's disable sounds setting",
                     note: "If enabled VoiceMutedAnnouncer will only make an announcement if \"Streamer Mode\" is disabled or if \"Disable sounds\" is set to false in \"Streamer Mode\" settings.",
                     value: false
+                },
+                {
+                    type: "switch",
+                    id: "disableDiscordStockSounds",
+                    name: "Disable Discord's stock sounds",
+                    note: "If true the default/stock/native sounds that discord makes will be disabled by overwriting your settings to make space for the voice announcements. This setting will overwrite discord's notification settings the the current session but the plugin will try to restore original settings when disabled.",
+                    value: true
                 }
             ]
+        },
+        {
+            type: "category",
+            id: "advancedSettings",
+            name: "Advanced",
+            shown: true,
+            settings: []
         }
     ]
 };
@@ -476,6 +490,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     getSettingsPanel() {
       const allVoices = this.getAllVoices();
       const settingsPanel = this.buildSettingsPanel();
+
       settingsPanel.append(
         this.buildSetting({
           type: 'dropdown',
@@ -492,24 +507,31 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           },
         })
       );
-      settingsPanel.append(
-        this.buildSetting({
-          type: 'switch',
-          id: 'disableDiscordStockSounds',
-          name: "Disable Discord's stock sounds",
-          note: "If true the default/stock/native sounds that discord makes will be disabled by overwriting your settings to make space for the voice announcements. This setting will overwrite discord's notification settings the the current session but the plugin will try to restore original settings when disabled.",
-          value: this.settings.audioSettings.disableDiscordStockSounds ?? true,
 
-          onChange: (value) => {
+      settingsPanel.addListener((category, settingId, value) => {
+        Logger.info(category, settingId, value);
+
+        switch (settingId) {
+          case 'disableDiscordStockSounds':
             this.settings.audioSettings['disableDiscordStockSounds'] = value;
             if (value) {
               this.disableStockDisSounds();
             } else {
               this.restoreStockDisSounds();
             }
-          },
-        })
-      );
+            break;
+          // case 'disableDiscordStockSounds':
+          //   this.settings.audioSettings['disableDiscordStockSounds'] = value;
+          //   if (value) {
+          //     this.disableStockDisSounds();
+          //   } else {
+          //     this.restoreStockDisSounds();
+          //   }
+          //   break;
+          default:
+            break;
+        }
+      });
 
       return settingsPanel.getElement();
     }
