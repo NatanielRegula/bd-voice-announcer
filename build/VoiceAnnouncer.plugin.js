@@ -1,7 +1,7 @@
 /**
  * @name VoiceAnnouncer
  * @description Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.
- * @version 0.0.10
+ * @version 0.0.11
  * @author NR
  * @source https://github.com/NatanielRegula/bd-voice-announcer
  * @donate paypal.me/NatanielRegula
@@ -36,7 +36,7 @@ const config = {
     author: "NR",
     authorId: "",
     authorLink: "",
-    version: "0.0.10",
+    version: "0.0.11",
     description: "Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.",
     website: "",
     source: "https://github.com/NatanielRegula/bd-voice-announcer",
@@ -44,6 +44,13 @@ const config = {
     donate: "paypal.me/NatanielRegula",
     invite: "",
     changelog: [
+        {
+            title: "0.0.11",
+            type: "Fixed",
+            items: [
+                "Bug fixed where the default sounds of discord wouldn't be turned off by the plugin in some cases"
+            ]
+        },
         {
             title: "0.0.10",
             type: "improved",
@@ -263,11 +270,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         ['VOICE_CHANNEL_SELECT', this.channelSwitchedListenerHandler],
         ['VOICE_STATE_UPDATES', this.voiceChannelUpdateListenerHandler],
 
-        [
-          'NOTIFICATIONS_TOGGLE_ALL_DISABLED',
-          this.checkTestStatusListenerHandler,
-        ],
-
         // ['SPEAKING', this.checkTestStatusListenerHandler],
         // ['CHANNEL_UPDATES', this.checkTestStatusListenerHandler],
         // ['CALL_UPDATE', this.checkTestStatusListenerHandler],
@@ -298,6 +300,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       //stock sounds
       this.disableStockDisSounds = this.disableStockDisSounds.bind(this);
       this.restoreStockDisSounds = this.restoreStockDisSounds.bind(this);
+      //settings
+      this.setDefaultValuesForSettings =
+        this.setDefaultValuesForSettings.bind(this);
     }
 
     ///-----Misc-----///
@@ -446,7 +451,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     ///-----Life Cycle & BD/Z Specific-----///
     onStart() {
       Logger.info('Plugin enabled!');
-
+      this.setDefaultValuesForSettings();
       this.disableStockDisSounds();
 
       if (this.cachedVoiceChannelId != null) {
@@ -469,7 +474,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           id: 'speakerVoice',
           name: 'Voice',
           note: 'Change the voice of the announcer. A sample announcement will be played when changing this setting.',
-          value: this.settings.audioSettings.speakerVoice ?? allVoices[0].id,
+          value: this.settings.audioSettings.speakerVoice,
           options: allVoices.map((voice) => {
             return { label: voice.label, value: voice.id };
           }),
@@ -522,9 +527,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     getSelectedSpeakerVoice(overrideVoiceId) {
       const allVoices = this.getAllVoices();
       const selectedVoiceId =
-        overrideVoiceId ??
-        this.settings.audioSettings.speakerVoice ??
-        allVoices[0].id;
+        overrideVoiceId ?? this.settings.audioSettings.speakerVoice;
 
       const voiceWithSelectedId = allVoices.filter(
         (voice) => voice.id == selectedVoiceId
@@ -564,8 +567,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
     ///-----Stock Sounds Enable/Restore-----///
     disableStockDisSounds() {
-      if (!this.settings.audioSettings.disableDiscordStockSounds ?? true)
-        return;
+      if (!this.settings.audioSettings.disableDiscordStockSounds) return;
 
       if (!this.stockSoundsManipulated) {
         this.stockSoundsDisabledBeforeManipulated =
@@ -586,6 +588,16 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       DisNotificationSettingsController.setDisabledSounds(
         this.stockSoundsDisabledBeforeManipulated
       );
+    }
+
+    setDefaultValuesForSettings() {
+      const allVoices = this.getAllVoices();
+      if (this.settings.audioSettings.disableDiscordStockSounds === undefined) {
+        this.settings.audioSettings.disableDiscordStockSounds = true;
+      }
+      if (this.settings.audioSettings.speakerVoice === undefined) {
+        this.settings.audioSettings.speakerVoice = allVoices[0].id;
+      }
     }
 
     ///-----Events Subscribing-----///

@@ -98,6 +98,9 @@ module.exports = (Plugin, Library) => {
       //stock sounds
       this.disableStockDisSounds = this.disableStockDisSounds.bind(this);
       this.restoreStockDisSounds = this.restoreStockDisSounds.bind(this);
+      //settings
+      this.setDefaultValuesForSettings =
+        this.setDefaultValuesForSettings.bind(this);
     }
 
     ///-----Misc-----///
@@ -246,7 +249,7 @@ module.exports = (Plugin, Library) => {
     ///-----Life Cycle & BD/Z Specific-----///
     onStart() {
       Logger.info('Plugin enabled!');
-
+      this.setDefaultValuesForSettings();
       this.disableStockDisSounds();
 
       if (this.cachedVoiceChannelId != null) {
@@ -269,7 +272,7 @@ module.exports = (Plugin, Library) => {
           id: 'speakerVoice',
           name: 'Voice',
           note: 'Change the voice of the announcer. A sample announcement will be played when changing this setting.',
-          value: this.settings.audioSettings.speakerVoice ?? allVoices[0].id,
+          value: this.settings.audioSettings.speakerVoice,
           options: allVoices.map((voice) => {
             return { label: voice.label, value: voice.id };
           }),
@@ -322,9 +325,7 @@ module.exports = (Plugin, Library) => {
     getSelectedSpeakerVoice(overrideVoiceId) {
       const allVoices = this.getAllVoices();
       const selectedVoiceId =
-        overrideVoiceId ??
-        this.settings.audioSettings.speakerVoice ??
-        allVoices[0].id;
+        overrideVoiceId ?? this.settings.audioSettings.speakerVoice;
 
       const voiceWithSelectedId = allVoices.filter(
         (voice) => voice.id == selectedVoiceId
@@ -364,8 +365,7 @@ module.exports = (Plugin, Library) => {
 
     ///-----Stock Sounds Enable/Restore-----///
     disableStockDisSounds() {
-      if (!this.settings.audioSettings.disableDiscordStockSounds ?? true)
-        return;
+      if (!this.settings.audioSettings.disableDiscordStockSounds) return;
 
       if (!this.stockSoundsManipulated) {
         this.stockSoundsDisabledBeforeManipulated =
@@ -386,6 +386,16 @@ module.exports = (Plugin, Library) => {
       DisNotificationSettingsController.setDisabledSounds(
         this.stockSoundsDisabledBeforeManipulated
       );
+    }
+
+    setDefaultValuesForSettings() {
+      const allVoices = this.getAllVoices();
+      if (this.settings.audioSettings.disableDiscordStockSounds === undefined) {
+        this.settings.audioSettings.disableDiscordStockSounds = true;
+      }
+      if (this.settings.audioSettings.speakerVoice === undefined) {
+        this.settings.audioSettings.speakerVoice = allVoices[0].id;
+      }
     }
 
     ///-----Events Subscribing-----///
