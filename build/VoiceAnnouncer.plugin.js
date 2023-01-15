@@ -242,16 +242,25 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   ];
 
   const VOICE_ANNOUNCEMENT = Object.freeze({
-    CHANNEL_SWITCHED: 'channelSwitched',
-    CONNECTED: 'connected',
-    DEAFENED: 'deafened',
-    DISCONNECTED: 'disconnected',
-    ERROR: 'error',
-    MUTED: 'muted',
-    UNDEAFENED: 'undeafened',
-    UNMUTED: 'unmuted',
-    USER_JOINED_YOUR_CHANNEL: 'userJoinedYourChannel',
-    USER_LEFT_YOUR_CHANNEL: 'userLeftYourChannel',
+    CONNECTED: { name: 'connected', replacesInDis: ['undeafen'] },
+    DEAFENED: { name: 'deafened', replacesInDis: ['deafen'] },
+    DISCONNECTED: { name: 'disconnected', replacesInDis: ['disconnect'] },
+    ERROR: { name: 'error', replacesInDis: [] },
+    MUTED: { name: 'muted', replacesInDis: ['mute'] },
+    UNDEAFENED: { name: 'undeafened', replacesInDis: ['undeafen'] },
+    UNMUTED: { name: 'unmuted', replacesInDis: ['unmute'] },
+    USER_JOINED_YOUR_CHANNEL: {
+      name: 'userJoinedYourChannel',
+      replacesInDis: ['user_join'],
+    },
+    USER_LEFT_YOUR_CHANNEL: {
+      name: 'userLeftYourChannel',
+      replacesInDis: ['user_leave'],
+    },
+    CHANNEL_SWITCHED: {
+      name: 'channelSwitched',
+      replacesInDis: ['user_moved'],
+    },
   });
 
   return class VoiceMutedAnnouncer extends Plugin {
@@ -479,11 +488,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           options: allVoices.map((voice) => {
             return { label: voice.label, value: voice.id };
           }),
-          onChange: (value) => {
-            this.playAudioClip(
-              this.getSelectedSpeakerVoice(value).audioClips.muted
-            );
-            this.settings.audioSettings['speakerVoice'] = value;
+          onChange: (newVoiceId) => {
+            this.playAudioClip(VOICE_ANNOUNCEMENT.MUTED, newVoiceId);
+            this.settings.audioSettings['speakerVoice'] = newVoiceId;
           },
         })
       );
@@ -551,9 +558,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       return voiceWithSelectedId[0];
     }
 
-    playAudioClip(src) {
+    playAudioClip(src, overrideVoiceId) {
       const audioPlayer = new Audio(
-        this.getSelectedSpeakerVoice().audioClips[src]
+        this.getSelectedSpeakerVoice(overrideVoiceId).audioClips[src.name]
       );
       audioPlayer.volume = this.settings.audioSettings.voiceNotificationVolume;
 
