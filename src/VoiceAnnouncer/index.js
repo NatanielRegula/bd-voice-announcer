@@ -106,8 +106,6 @@ module.exports = (Plugin, Library) => {
       this.cachedVoiceChannelId =
         DisSelectedChannelStore.getVoiceChannelId() ?? null;
       this.cachedCurrentVoiceChannelUsersIds = [];
-      //stock sounds
-      this.stockSoundsManipulated = false;
 
       ///-----Adding Context To Methods-----///
       //voice channel actions [connected,disconnected,channel_switched,user_left_your_channel,user_joined_your_channel]
