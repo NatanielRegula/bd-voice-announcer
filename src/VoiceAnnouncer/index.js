@@ -86,8 +86,6 @@ module.exports = (Plugin, Library) => {
       this.cachedCurrentVoiceChannelUsersIds = [];
       //stock sounds
       this.stockSoundsManipulated = false;
-      this.stockSoundsDisabledBeforeManipulated =
-        DisNotificationSettingsStore.getDisabledSounds() ?? [];
 
       ///-----Adding Context To Methods-----///
       //voice channel actions [connected,disconnected,channel_switched,user_left_your_channel,user_joined_your_channel]
@@ -367,25 +365,42 @@ module.exports = (Plugin, Library) => {
     disableStockDisSounds() {
       if (!this.settings.audioSettings.disableDiscordStockSounds) return;
 
-      if (!this.stockSoundsManipulated) {
-        this.stockSoundsDisabledBeforeManipulated =
-          DisNotificationSettingsStore.getDisabledSounds();
+      if (
+        !Utilities.loadData('VoiceAnnouncer', 'stockSoundsManipulated', false)
+      ) {
+        Utilities.saveData(
+          'VoiceAnnouncer',
+          'stockSoundsDisabledBeforeManipulated',
+          DisNotificationSettingsStore.getDisabledSounds()
+        );
       }
 
       DisNotificationSettingsController.setDisabledSounds([
         ...SOUNDS_THAT_THIS_PLUGIN_REPLACES,
-        ...this.stockSoundsDisabledBeforeManipulated,
+        ...Utilities.loadData(
+          'VoiceAnnouncer',
+          'stockSoundsDisabledBeforeManipulated',
+          []
+        ),
       ]);
 
-      this.stockSoundsManipulated = true;
+      Utilities.saveData('VoiceAnnouncer', 'stockSoundsManipulated', true);
     }
 
     restoreStockDisSounds() {
-      if (!this.stockSoundsManipulated) return;
+      if (
+        !Utilities.loadData('VoiceAnnouncer', 'stockSoundsManipulated', false)
+      )
+        return;
 
       DisNotificationSettingsController.setDisabledSounds(
-        this.stockSoundsDisabledBeforeManipulated
+        Utilities.loadData(
+          'VoiceAnnouncer',
+          'stockSoundsDisabledBeforeManipulated',
+          []
+        )
       );
+      Utilities.saveData('VoiceAnnouncer', 'stockSoundsManipulated', false);
     }
 
     setDefaultValuesForSettings() {
