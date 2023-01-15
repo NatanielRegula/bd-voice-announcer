@@ -241,6 +241,19 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     'user_moved',
   ];
 
+  const VOICE_ANNOUNCEMENT = Object.freeze({
+    CHANNEL_SWITCHED: 'channelSwitched',
+    CONNECTED: 'connected',
+    DEAFENED: 'deafened',
+    DISCONNECTED: 'disconnected',
+    ERROR: 'error',
+    MUTED: 'muted',
+    UNDEAFENED: 'undeafened',
+    UNMUTED: 'unmuted',
+    USER_JOINED_YOUR_CHANNEL: 'userJoinedYourChannel',
+    USER_LEFT_YOUR_CHANNEL: 'userLeftYourChannel',
+  });
+
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
       super();
@@ -327,11 +340,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       if (!this.shouldMakeSound()) return;
 
       if (DisMediaInfo.isSelfDeaf()) {
-        this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.deafened);
+        this.playAudioClip(VOICE_ANNOUNCEMENT.DEAFENED);
       } else {
-        this.playAudioClip(
-          this.getSelectedSpeakerVoice().audioClips.undeafened
-        );
+        this.playAudioClip(VOICE_ANNOUNCEMENT.UNDEAFENED);
       }
     }
 
@@ -366,15 +377,11 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         if (idsOfUsersWhoLeft.includes(this.cachedCurrentUserId)) return;
 
         idsOfUsersWhoJoined.forEach((userId) => {
-          this.playAudioClip(
-            this.getSelectedSpeakerVoice().audioClips.userJoinedYourChannel
-          );
+          this.playAudioClip(VOICE_ANNOUNCEMENT.USER_JOINED_YOUR_CHANNEL);
         });
 
         idsOfUsersWhoLeft.forEach((userId) => {
-          this.playAudioClip(
-            this.getSelectedSpeakerVoice().audioClips.userLeftYourChannel
-          );
+          this.playAudioClip(VOICE_ANNOUNCEMENT.USER_LEFT_YOUR_CHANNEL);
         });
       } catch (error) {
         Logger.error(error);
@@ -392,9 +399,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       if (eventVoiceChannelId == null) {
         //this means we have disconnected from voice channel
         //there could be an announcement made for this.
-        this.playAudioClip(
-          this.getSelectedSpeakerVoice().audioClips.disconnected
-        );
+        this.playAudioClip(VOICE_ANNOUNCEMENT.DISCONNECTED);
 
         this.refreshCurrentVoiceChannelUsersIdsCache();
         this.cachedVoiceChannelId = eventVoiceChannelId;
@@ -405,7 +410,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         //this means we have connected to a voice channel for the first time
         //so there could be a "connected" announcement
 
-        this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.connected);
+        this.playAudioClip(VOICE_ANNOUNCEMENT.CONNECTED);
         this.refreshCurrentVoiceChannelUsersIdsCache();
         this.cachedVoiceChannelId = eventVoiceChannelId;
         return;
@@ -413,9 +418,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
       this.cachedVoiceChannelId = eventVoiceChannelId;
       this.refreshCurrentVoiceChannelUsersIdsCache();
-      this.playAudioClip(
-        this.getSelectedSpeakerVoice().audioClips.channelSwitched
-      );
+      this.playAudioClip(VOICE_ANNOUNCEMENT.CHANNEL_SWITCHED);
     }
 
     checkTestStatusListenerHandler(e) {
@@ -440,9 +443,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       if (!this.shouldMakeSound()) return;
 
       if (DisMediaInfo.isSelfMute()) {
-        this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.muted);
+        this.playAudioClip(VOICE_ANNOUNCEMENT.MUTED);
       } else {
-        this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.unmuted);
+        this.playAudioClip(VOICE_ANNOUNCEMENT.UNMUTED);
       }
     }
 
@@ -549,7 +552,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     playAudioClip(src) {
-      const audioPlayer = new Audio(src);
+      const audioPlayer = new Audio(
+        this.getSelectedSpeakerVoice().audioClips[src]
+      );
       audioPlayer.volume = this.settings.audioSettings.voiceNotificationVolume;
 
       audioPlayer.play().then(() => audioPlayer.remove());
