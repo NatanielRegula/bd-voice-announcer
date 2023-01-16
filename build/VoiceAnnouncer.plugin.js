@@ -553,7 +553,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     getSettingsPanel() {
       const allVoices = this.getAllVoices();
       const settingsPanel = this.buildSettingsPanel();
-      // Logger.info(settingsPanel);
+
       settingsPanel.append(
         this.buildSetting({
           type: 'dropdown',
@@ -593,14 +593,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
               this.restoreStockDisSounds();
             }
             break;
-          // case 'disableDiscordStockSounds':
-          //   this.settings.audioSettings['disableDiscordStockSounds'] = value;
-          //   if (value) {
-          //     this.disableStockDisSounds();
-          //   } else {
-          //     this.restoreStockDisSounds();
-          //   }
-          //   break;
+
           default:
             break;
         }
@@ -724,7 +717,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       Utilities.saveData('VoiceAnnouncer', 'stockSoundsManipulated', false);
     }
 
-    restoreSingleStockDisSounds(name) {
+    restoreSingleStockDisSounds(voiceAnnouncementName) {
       if (
         !Utilities.loadData('VoiceAnnouncer', 'stockSoundsManipulated', false)
       )
@@ -738,7 +731,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
       let disSoundsToRestore;
       Object.entries(VOICE_ANNOUNCEMENT).forEach(([key, value]) => {
-        if (Object.is(value.name, name)) {
+        if (Object.is(value.name, voiceAnnouncementName)) {
           Logger.info(value);
           disSoundsToRestore = value.replacesInDis;
         }
