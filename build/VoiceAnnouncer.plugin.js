@@ -1,7 +1,7 @@
 /**
  * @name VoiceAnnouncer
  * @description Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.
- * @version 0.0.13
+ * @version 0.0.14
  * @author NR
  * @source https://github.com/NatanielRegula/bd-voice-announcer
  * @donate paypal.me/NatanielRegula
@@ -36,7 +36,7 @@ const config = {
     author: "NR",
     authorId: "",
     authorLink: "",
-    version: "0.0.13",
+    version: "0.0.14",
     description: "Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.",
     website: "",
     source: "https://github.com/NatanielRegula/bd-voice-announcer",
@@ -44,6 +44,14 @@ const config = {
     donate: "paypal.me/NatanielRegula",
     invite: "",
     changelog: [
+        {
+            title: "0.0.14",
+            type: "improved",
+            items: [
+                "Improved the UX in settings panel for the plugin!",
+                "Replaced warnings in settings with a warning message box"
+            ]
+        },
         {
             title: "0.0.13",
             type: "improved",
@@ -173,7 +181,7 @@ const config = {
                     type: "switch",
                     id: "connected",
                     name: "Connected",
-                    note: "Announcement when you connect to a voice channel. **************** WARNING: due to the fact that in discord the same stock sound is used for \"Connected\" and \"User Joined Your Channel\" you should set these two announcements to matching value (enabled or disabled) to avoid unforeseen behavior.",
+                    note: "Announcement when you connect to a voice channel.",
                     value: true
                 },
                 {
@@ -222,7 +230,7 @@ const config = {
                     type: "switch",
                     id: "userJoinedYourChannel",
                     name: "User Joined Your Channel",
-                    note: "Announcement when a user joins your voice channel. **************** WARNING: due to the fact that in discord the same stock sound is used for \"Connected\" and \"User Joined Your Channel\" you should set these two announcements to matching value (enabled or disabled) to avoid unforeseen behavior.",
+                    note: "Announcement when a user joins your voice channel.",
                     value: true
                 },
                 {
@@ -567,6 +575,15 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     getSettingsPanel() {
       const allVoices = this.getAllVoices();
       const settingsPanel = this.buildSettingsPanel();
+      const warningElement = document.createElement('div');
+      warningElement.innerHTML =
+        '<p>WARNING: due to the fact that in discord the same stock sound is used for "Connected" and "User Joined Your Channel" you should set these two announcements to matching value (enabled or disabled) to avoid unforeseen behavior.</p>';
+      warningElement.style.backgroundColor = 'var(--info-warning-foreground)';
+      warningElement.style.padding = '0.5rem 1rem';
+      warningElement.style.borderRadius = '5px';
+      warningElement.style.fontWeight = '500';
+      warningElement.style.marginTop = '20px';
+      warningElement.style.marginBottom = '20px';
 
       settingsPanel.element
         .getElementsByClassName('plugin-inputs collapsible')[0]
@@ -586,7 +603,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
             },
           }).getElement()
         );
-
+      settingsPanel.element
+        .getElementsByClassName('plugin-inputs collapsible')[1]
+        .prepend(warningElement);
       settingsPanel.addListener((categoryId, settingId, value) => {
         Logger.info(categoryId, settingId, value);
 

@@ -266,6 +266,15 @@ module.exports = (Plugin, Library) => {
     getSettingsPanel() {
       const allVoices = this.getAllVoices();
       const settingsPanel = this.buildSettingsPanel();
+      const warningElement = document.createElement('div');
+      warningElement.innerHTML =
+        '<p>WARNING: due to the fact that in discord the same stock sound is used for "Connected" and "User Joined Your Channel" you should set these two announcements to matching value (enabled or disabled) to avoid unforeseen behavior.</p>';
+      warningElement.style.backgroundColor = 'var(--info-warning-foreground)';
+      warningElement.style.padding = '0.5rem 1rem';
+      warningElement.style.borderRadius = '5px';
+      warningElement.style.fontWeight = '500';
+      warningElement.style.marginTop = '20px';
+      warningElement.style.marginBottom = '20px';
 
       settingsPanel.element
         .getElementsByClassName('plugin-inputs collapsible')[0]
@@ -285,7 +294,9 @@ module.exports = (Plugin, Library) => {
             },
           }).getElement()
         );
-
+      settingsPanel.element
+        .getElementsByClassName('plugin-inputs collapsible')[1]
+        .prepend(warningElement);
       settingsPanel.addListener((categoryId, settingId, value) => {
         Logger.info(categoryId, settingId, value);
 
