@@ -5,7 +5,7 @@
     "author": "NR",
     "authorId": "",
     "authorLink": "",
-    "version": "0.0.12",
+    "version": "0.0.13",
     "description": "Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.",
     "website": "",
     "source": "https://github.com/NatanielRegula/bd-voice-announcer",
@@ -13,6 +13,13 @@
     "donate": "paypal.me/NatanielRegula",
     "invite": "",
     "changelog": [
+        {
+            "title": "0.0.13",
+            "type": "improved",
+            "items": [
+                "Improved the UX in settings panel for the plugin!"
+            ]
+        },
         {
             "title": "0.0.12",
             "type": "improved",
@@ -129,7 +136,7 @@
             "type": "category",
             "id": "enableDisableAnnouncements",
             "name": "Enable or Disable Specific Announcements",
-            "shown": true,
+            "shown": false,
             "settings": [
                 {
                     "type": "switch",
@@ -200,7 +207,7 @@
             "type": "category",
             "id": "advancedSettings",
             "name": "Advanced",
-            "shown": true,
+            "shown": false,
             "settings": []
         }
     ]
