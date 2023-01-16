@@ -1,7 +1,7 @@
 /**
  * @name VoiceAnnouncer
  * @description Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.
- * @version 0.0.11
+ * @version 0.0.12
  * @author NR
  * @source https://github.com/NatanielRegula/bd-voice-announcer
  * @donate paypal.me/NatanielRegula
@@ -36,7 +36,7 @@ const config = {
     author: "NR",
     authorId: "",
     authorLink: "",
-    version: "0.0.11",
+    version: "0.0.12",
     description: "Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.",
     website: "",
     source: "https://github.com/NatanielRegula/bd-voice-announcer",
@@ -45,8 +45,15 @@ const config = {
     invite: "",
     changelog: [
         {
+            title: "0.0.12",
+            type: "improved",
+            items: [
+                "Added a way to enable or disable any of the announcements individually in the settings."
+            ]
+        },
+        {
             title: "0.0.11",
-            type: "Fixed",
+            type: "fixed",
             items: [
                 "Bug fixed where the default sounds of discord wouldn't be turned off by the plugin in some cases"
             ]
@@ -60,7 +67,7 @@ const config = {
         },
         {
             title: "0.0.9",
-            type: "Fixed",
+            type: "fixed",
             items: [
                 "Fixed bugs"
             ]
@@ -122,7 +129,7 @@ const config = {
         {
             type: "category",
             id: "audioSettings",
-            name: "Audio Settings",
+            name: "Audio",
             shown: true,
             settings: [
                 {
@@ -139,8 +146,93 @@ const config = {
                     name: "Respect Streamer Mode's disable sounds setting",
                     note: "If enabled VoiceMutedAnnouncer will only make an announcement if \"Streamer Mode\" is disabled or if \"Disable sounds\" is set to false in \"Streamer Mode\" settings.",
                     value: false
+                },
+                {
+                    type: "switch",
+                    id: "disableDiscordStockSounds",
+                    name: "Disable Discord's stock sounds",
+                    note: "If true the default/stock/native sounds that discord makes will be disabled by overwriting your settings to make space for the voice announcements. This setting will overwrite discord's notification settings the the current session but the plugin will try to restore original settings when disabled.",
+                    value: true
                 }
             ]
+        },
+        {
+            type: "category",
+            id: "enableDisableAnnouncements",
+            name: "Enable or Disable Specific Announcements",
+            shown: true,
+            settings: [
+                {
+                    type: "switch",
+                    id: "connected",
+                    name: "Connected",
+                    note: "Announcement when you connect to a voice channel. **************** WARNING: due to the fact that in discord the same stock sound is used for \"Connected\" and \"User Joined Your Channel\" you should set these two announcements to matching value (enabled or disabled) to avoid unforeseen behavior.",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "disconnected",
+                    name: "Disconnected",
+                    note: "Announcement when you disconnect from a voice channel.",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "channelSwitched",
+                    name: "Channel Switched",
+                    note: "Announcement when you switch to a different voice channel.",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "muted",
+                    name: "Muted",
+                    note: "Announcement when you muted your microphone.",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "unmuted",
+                    name: "Unmuted",
+                    note: "Announcement when you unmuted your microphone.",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "deafened",
+                    name: "Deafened",
+                    note: "Announcement when you deafened your audio.",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "undeafened",
+                    name: "Undeafened",
+                    note: "Announcement when you undeafened your audio.",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "userJoinedYourChannel",
+                    name: "User Joined Your Channel",
+                    note: "Announcement when a user joins your voice channel. **************** WARNING: due to the fact that in discord the same stock sound is used for \"Connected\" and \"User Joined Your Channel\" you should set these two announcements to matching value (enabled or disabled) to avoid unforeseen behavior.",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "userLeftYourChannel",
+                    name: "User Left Your Channel",
+                    note: "Announcement when a user leaves your voice channel.",
+                    value: true
+                }
+            ]
+        },
+        {
+            type: "category",
+            id: "advancedSettings",
+            name: "Advanced",
+            shown: true,
+            settings: []
         }
     ]
 };
@@ -230,16 +322,28 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
   const localVoices = [...voicesJson.female, ...voicesJson.male];
 
-  const SOUNDS_THAT_THIS_PLUGIN_REPLACES = [
-    'deafen',
-    'undeafen',
-    'mute',
-    'unmute',
-    'disconnect',
-    'user_join',
-    'user_leave',
-    'user_moved',
-  ];
+  const VOICE_ANNOUNCEMENT = Object.freeze({
+    CONNECTED: { name: 'connected', replacesInDis: ['user_join'] },
+    DISCONNECTED: { name: 'disconnected', replacesInDis: ['disconnect'] },
+    CHANNEL_SWITCHED: {
+      name: 'channelSwitched',
+      replacesInDis: ['user_moved'],
+    },
+    DEAFENED: { name: 'deafened', replacesInDis: ['deafen'] },
+    UNDEAFENED: { name: 'undeafened', replacesInDis: ['undeafen'] },
+    MUTED: { name: 'muted', replacesInDis: ['mute'] },
+    UNMUTED: { name: 'unmuted', replacesInDis: ['unmute'] },
+    USER_JOINED_YOUR_CHANNEL: {
+      name: 'userJoinedYourChannel',
+      replacesInDis: ['user_join'],
+    },
+    USER_LEFT_YOUR_CHANNEL: {
+      name: 'userLeftYourChannel',
+      replacesInDis: ['user_leave'],
+    },
+
+    ERROR: { name: 'error', replacesInDis: [] },
+  });
 
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
@@ -286,10 +390,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       this.cachedVoiceChannelId =
         DisSelectedChannelStore.getVoiceChannelId() ?? null;
       this.cachedCurrentVoiceChannelUsersIds = [];
-      //stock sounds
-      this.stockSoundsManipulated = false;
-      this.stockSoundsDisabledBeforeManipulated =
-        DisNotificationSettingsStore.getDisabledSounds() ?? [];
 
       ///-----Adding Context To Methods-----///
       //voice channel actions [connected,disconnected,channel_switched,user_left_your_channel,user_joined_your_channel]
@@ -300,6 +400,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       //stock sounds
       this.disableStockDisSounds = this.disableStockDisSounds.bind(this);
       this.restoreStockDisSounds = this.restoreStockDisSounds.bind(this);
+      this.restoreSingleStockDisSounds =
+        this.restoreSingleStockDisSounds.bind(this);
       //settings
       this.setDefaultValuesForSettings =
         this.setDefaultValuesForSettings.bind(this);
@@ -329,11 +431,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       if (!this.shouldMakeSound()) return;
 
       if (DisMediaInfo.isSelfDeaf()) {
-        this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.deafened);
+        this.playAudioClip(VOICE_ANNOUNCEMENT.DEAFENED);
       } else {
-        this.playAudioClip(
-          this.getSelectedSpeakerVoice().audioClips.undeafened
-        );
+        this.playAudioClip(VOICE_ANNOUNCEMENT.UNDEAFENED);
       }
     }
 
@@ -368,15 +468,11 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         if (idsOfUsersWhoLeft.includes(this.cachedCurrentUserId)) return;
 
         idsOfUsersWhoJoined.forEach((userId) => {
-          this.playAudioClip(
-            this.getSelectedSpeakerVoice().audioClips.userJoinedYourChannel
-          );
+          this.playAudioClip(VOICE_ANNOUNCEMENT.USER_JOINED_YOUR_CHANNEL);
         });
 
         idsOfUsersWhoLeft.forEach((userId) => {
-          this.playAudioClip(
-            this.getSelectedSpeakerVoice().audioClips.userLeftYourChannel
-          );
+          this.playAudioClip(VOICE_ANNOUNCEMENT.USER_LEFT_YOUR_CHANNEL);
         });
       } catch (error) {
         Logger.error(error);
@@ -394,9 +490,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       if (eventVoiceChannelId == null) {
         //this means we have disconnected from voice channel
         //there could be an announcement made for this.
-        this.playAudioClip(
-          this.getSelectedSpeakerVoice().audioClips.disconnected
-        );
+        this.playAudioClip(VOICE_ANNOUNCEMENT.DISCONNECTED);
 
         this.refreshCurrentVoiceChannelUsersIdsCache();
         this.cachedVoiceChannelId = eventVoiceChannelId;
@@ -407,7 +501,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         //this means we have connected to a voice channel for the first time
         //so there could be a "connected" announcement
 
-        this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.connected);
+        this.playAudioClip(VOICE_ANNOUNCEMENT.CONNECTED);
         this.refreshCurrentVoiceChannelUsersIdsCache();
         this.cachedVoiceChannelId = eventVoiceChannelId;
         return;
@@ -415,9 +509,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
       this.cachedVoiceChannelId = eventVoiceChannelId;
       this.refreshCurrentVoiceChannelUsersIdsCache();
-      this.playAudioClip(
-        this.getSelectedSpeakerVoice().audioClips.channelSwitched
-      );
+      this.playAudioClip(VOICE_ANNOUNCEMENT.CHANNEL_SWITCHED);
     }
 
     checkTestStatusListenerHandler(e) {
@@ -442,9 +534,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       if (!this.shouldMakeSound()) return;
 
       if (DisMediaInfo.isSelfMute()) {
-        this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.muted);
+        this.playAudioClip(VOICE_ANNOUNCEMENT.MUTED);
       } else {
-        this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.unmuted);
+        this.playAudioClip(VOICE_ANNOUNCEMENT.UNMUTED);
       }
     }
 
@@ -468,6 +560,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     getSettingsPanel() {
       const allVoices = this.getAllVoices();
       const settingsPanel = this.buildSettingsPanel();
+
       settingsPanel.append(
         this.buildSetting({
           type: 'dropdown',
@@ -478,32 +571,40 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
           options: allVoices.map((voice) => {
             return { label: voice.label, value: voice.id };
           }),
-          onChange: (value) => {
-            this.playAudioClip(
-              this.getSelectedSpeakerVoice(value).audioClips.muted
-            );
-            this.settings.audioSettings['speakerVoice'] = value;
+          onChange: (newVoiceId) => {
+            this.playAudioClip(VOICE_ANNOUNCEMENT.MUTED, newVoiceId);
+            this.settings.audioSettings['speakerVoice'] = newVoiceId;
           },
         })
       );
-      settingsPanel.append(
-        this.buildSetting({
-          type: 'switch',
-          id: 'disableDiscordStockSounds',
-          name: "Disable Discord's stock sounds",
-          note: "If true the default/stock/native sounds that discord makes will be disabled by overwriting your settings to make space for the voice announcements. This setting will overwrite discord's notification settings the the current session but the plugin will try to restore original settings when disabled.",
-          value: this.settings.audioSettings.disableDiscordStockSounds ?? true,
 
-          onChange: (value) => {
+      settingsPanel.addListener((categoryId, settingId, value) => {
+        Logger.info(categoryId, settingId, value);
+
+        if (categoryId === 'enableDisableAnnouncements') {
+          if (value) {
+            this.disableStockDisSounds();
+          } else {
+            this.restoreSingleStockDisSounds(settingId);
+          }
+
+          return;
+        }
+
+        switch (settingId) {
+          case 'disableDiscordStockSounds':
             this.settings.audioSettings['disableDiscordStockSounds'] = value;
             if (value) {
               this.disableStockDisSounds();
             } else {
               this.restoreStockDisSounds();
             }
-          },
-        })
-      );
+            break;
+
+          default:
+            break;
+        }
+      });
 
       return settingsPanel.getElement();
     }
@@ -550,8 +651,17 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       return voiceWithSelectedId[0];
     }
 
-    playAudioClip(src) {
-      const audioPlayer = new Audio(src);
+    playAudioClip(src, overrideVoiceId) {
+      //TODO  && overrideVoiceId == undefined is a hack to make sure it makes a sound when trying a voice pack even if muted is disabled
+      if (
+        !this.settings.enableDisableAnnouncements[src.name] &&
+        overrideVoiceId == undefined
+      )
+        return;
+
+      const audioPlayer = new Audio(
+        this.getSelectedSpeakerVoice(overrideVoiceId).audioClips[src.name]
+      );
       audioPlayer.volume = this.settings.audioSettings.voiceNotificationVolume;
 
       audioPlayer.play().then(() => audioPlayer.remove());
@@ -569,25 +679,83 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     disableStockDisSounds() {
       if (!this.settings.audioSettings.disableDiscordStockSounds) return;
 
-      if (!this.stockSoundsManipulated) {
-        this.stockSoundsDisabledBeforeManipulated =
-          DisNotificationSettingsStore.getDisabledSounds();
+      if (
+        !Utilities.loadData('VoiceAnnouncer', 'stockSoundsManipulated', false)
+      ) {
+        Utilities.saveData(
+          'VoiceAnnouncer',
+          'stockSoundsDisabledBeforeManipulated',
+          DisNotificationSettingsStore.getDisabledSounds()
+        );
+      }
+
+      const soundsToDisable = [];
+      for (const [_, value] of Object.entries(VOICE_ANNOUNCEMENT)) {
+        if (!this.settings.enableDisableAnnouncements[value.name]) continue;
+
+        soundsToDisable.push(...value.replacesInDis);
       }
 
       DisNotificationSettingsController.setDisabledSounds([
-        ...SOUNDS_THAT_THIS_PLUGIN_REPLACES,
-        ...this.stockSoundsDisabledBeforeManipulated,
+        ...soundsToDisable,
+        ...Utilities.loadData(
+          'VoiceAnnouncer',
+          'stockSoundsDisabledBeforeManipulated',
+          []
+        ),
       ]);
 
-      this.stockSoundsManipulated = true;
+      Utilities.saveData('VoiceAnnouncer', 'stockSoundsManipulated', true);
     }
 
     restoreStockDisSounds() {
-      if (!this.stockSoundsManipulated) return;
+      if (
+        !Utilities.loadData('VoiceAnnouncer', 'stockSoundsManipulated', false)
+      )
+        return;
 
       DisNotificationSettingsController.setDisabledSounds(
-        this.stockSoundsDisabledBeforeManipulated
+        Utilities.loadData(
+          'VoiceAnnouncer',
+          'stockSoundsDisabledBeforeManipulated',
+          []
+        )
       );
+      Utilities.saveData('VoiceAnnouncer', 'stockSoundsManipulated', false);
+    }
+
+    restoreSingleStockDisSounds(voiceAnnouncementName) {
+      if (
+        !Utilities.loadData('VoiceAnnouncer', 'stockSoundsManipulated', false)
+      )
+        return;
+
+      const stockSoundsDisabledBeforeManipulated = Utilities.loadData(
+        'VoiceAnnouncer',
+        'stockSoundsDisabledBeforeManipulated',
+        []
+      );
+
+      let disSoundsToRestore;
+      Object.entries(VOICE_ANNOUNCEMENT).forEach(([key, value]) => {
+        if (Object.is(value.name, voiceAnnouncementName)) {
+          Logger.info(value);
+          disSoundsToRestore = value.replacesInDis;
+        }
+      });
+
+      disSoundsToRestore.forEach((disSoundToRestore) => {
+        if (stockSoundsDisabledBeforeManipulated.includes(disSoundToRestore)) {
+          Logger.debug('not removing because it is in original list');
+          return;
+        }
+
+        DisNotificationSettingsController.setDisabledSounds(
+          DisNotificationSettingsStore.getDisabledSounds().filter(
+            (e) => e !== disSoundToRestore
+          )
+        );
+      });
     }
 
     setDefaultValuesForSettings() {
@@ -601,6 +769,9 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     ///-----Events Subscribing-----///
+    // handleDisabledAnnouncement(e) {
+
+    // }
     setUpListeners() {
       this.disEventListenerPairs.forEach((eventListenerPair) => {
         Dispatcher.subscribe(...eventListenerPair);

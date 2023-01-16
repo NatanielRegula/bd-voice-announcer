@@ -5,7 +5,7 @@
     "author": "NR",
     "authorId": "",
     "authorLink": "",
-    "version": "0.0.11",
+    "version": "0.0.12",
     "description": "Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.",
     "website": "",
     "source": "https://github.com/NatanielRegula/bd-voice-announcer",
@@ -14,8 +14,15 @@
     "invite": "",
     "changelog": [
         {
+            "title": "0.0.12",
+            "type": "improved",
+            "items": [
+                "Added a way to enable or disable any of the announcements individually in the settings."
+            ]
+        },
+        {
             "title": "0.0.11",
-            "type": "Fixed",
+            "type": "fixed",
             "items": [
                 "Bug fixed where the default sounds of discord wouldn't be turned off by the plugin in some cases"
             ]
@@ -29,7 +36,7 @@
         },
         {
             "title": "0.0.9",
-            "type": "Fixed",
+            "type": "fixed",
             "items": [
                 "Fixed bugs"
             ]
@@ -91,7 +98,7 @@
         {
             "type": "category",
             "id": "audioSettings",
-            "name": "Audio Settings",
+            "name": "Audio",
             "shown": true,
             "settings": [
                 {
@@ -108,8 +115,93 @@
                     "name": "Respect Streamer Mode's disable sounds setting",
                     "note": "If enabled VoiceMutedAnnouncer will only make an announcement if \"Streamer Mode\" is disabled or if \"Disable sounds\" is set to false in \"Streamer Mode\" settings.",
                     "value": false
+                },
+                {
+                    "type": "switch",
+                    "id": "disableDiscordStockSounds",
+                    "name": "Disable Discord's stock sounds",
+                    "note": "If true the default/stock/native sounds that discord makes will be disabled by overwriting your settings to make space for the voice announcements. This setting will overwrite discord's notification settings the the current session but the plugin will try to restore original settings when disabled.",
+                    "value": true
                 }
             ]
+        },
+        {
+            "type": "category",
+            "id": "enableDisableAnnouncements",
+            "name": "Enable or Disable Specific Announcements",
+            "shown": true,
+            "settings": [
+                {
+                    "type": "switch",
+                    "id": "connected",
+                    "name": "Connected",
+                    "note": "Announcement when you connect to a voice channel. **************** WARNING: due to the fact that in discord the same stock sound is used for \"Connected\" and \"User Joined Your Channel\" you should set these two announcements to matching value (enabled or disabled) to avoid unforeseen behavior.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "disconnected",
+                    "name": "Disconnected",
+                    "note": "Announcement when you disconnect from a voice channel.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "channelSwitched",
+                    "name": "Channel Switched",
+                    "note": "Announcement when you switch to a different voice channel.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "muted",
+                    "name": "Muted",
+                    "note": "Announcement when you muted your microphone.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "unmuted",
+                    "name": "Unmuted",
+                    "note": "Announcement when you unmuted your microphone.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "deafened",
+                    "name": "Deafened",
+                    "note": "Announcement when you deafened your audio.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "undeafened",
+                    "name": "Undeafened",
+                    "note": "Announcement when you undeafened your audio.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "userJoinedYourChannel",
+                    "name": "User Joined Your Channel",
+                    "note": "Announcement when a user joins your voice channel. **************** WARNING: due to the fact that in discord the same stock sound is used for \"Connected\" and \"User Joined Your Channel\" you should set these two announcements to matching value (enabled or disabled) to avoid unforeseen behavior.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "userLeftYourChannel",
+                    "name": "User Left Your Channel",
+                    "note": "Announcement when a user leaves your voice channel.",
+                    "value": true
+                }
+            ]
+        },
+        {
+            "type": "category",
+            "id": "advancedSettings",
+            "name": "Advanced",
+            "shown": true,
+            "settings": []
         }
     ]
 }
