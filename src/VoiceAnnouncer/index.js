@@ -267,22 +267,24 @@ module.exports = (Plugin, Library) => {
       const allVoices = this.getAllVoices();
       const settingsPanel = this.buildSettingsPanel();
 
-      settingsPanel.append(
-        this.buildSetting({
-          type: 'dropdown',
-          id: 'speakerVoice',
-          name: 'Voice',
-          note: 'Change the voice of the announcer. A sample announcement will be played when changing this setting.',
-          value: this.settings.audioSettings.speakerVoice,
-          options: allVoices.map((voice) => {
-            return { label: voice.label, value: voice.id };
-          }),
-          onChange: (newVoiceId) => {
-            this.playAudioClip(VOICE_ANNOUNCEMENT.MUTED, newVoiceId);
-            this.settings.audioSettings['speakerVoice'] = newVoiceId;
-          },
-        })
-      );
+      settingsPanel.element
+        .getElementsByClassName('plugin-inputs collapsible')[0]
+        .append(
+          this.buildSetting({
+            type: 'dropdown',
+            id: 'speakerVoice',
+            name: 'Voice',
+            note: 'Change the voice of the announcer. A sample announcement will be played when changing this setting.',
+            value: this.settings.audioSettings.speakerVoice,
+            options: allVoices.map((voice) => {
+              return { label: voice.label, value: voice.id };
+            }),
+            onChange: (newVoiceId) => {
+              this.playAudioClip(VOICE_ANNOUNCEMENT.MUTED, newVoiceId);
+              this.settings.audioSettings['speakerVoice'] = newVoiceId;
+            },
+          }).getElement()
+        );
 
       settingsPanel.addListener((categoryId, settingId, value) => {
         Logger.info(categoryId, settingId, value);

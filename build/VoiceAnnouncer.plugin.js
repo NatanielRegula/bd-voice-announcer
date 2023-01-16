@@ -1,7 +1,7 @@
 /**
  * @name VoiceAnnouncer
  * @description Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.
- * @version 0.0.12
+ * @version 0.0.13
  * @author NR
  * @source https://github.com/NatanielRegula/bd-voice-announcer
  * @donate paypal.me/NatanielRegula
@@ -36,7 +36,7 @@ const config = {
     author: "NR",
     authorId: "",
     authorLink: "",
-    version: "0.0.12",
+    version: "0.0.13",
     description: "Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.",
     website: "",
     source: "https://github.com/NatanielRegula/bd-voice-announcer",
@@ -44,6 +44,13 @@ const config = {
     donate: "paypal.me/NatanielRegula",
     invite: "",
     changelog: [
+        {
+            title: "0.0.13",
+            type: "improved",
+            items: [
+                "Improved the UX in settings panel for the plugin!"
+            ]
+        },
         {
             title: "0.0.12",
             type: "improved",
@@ -160,7 +167,7 @@ const config = {
             type: "category",
             id: "enableDisableAnnouncements",
             name: "Enable or Disable Specific Announcements",
-            shown: true,
+            shown: false,
             settings: [
                 {
                     type: "switch",
@@ -231,7 +238,7 @@ const config = {
             type: "category",
             id: "advancedSettings",
             name: "Advanced",
-            shown: true,
+            shown: false,
             settings: []
         }
     ]
@@ -561,22 +568,24 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       const allVoices = this.getAllVoices();
       const settingsPanel = this.buildSettingsPanel();
 
-      settingsPanel.append(
-        this.buildSetting({
-          type: 'dropdown',
-          id: 'speakerVoice',
-          name: 'Voice',
-          note: 'Change the voice of the announcer. A sample announcement will be played when changing this setting.',
-          value: this.settings.audioSettings.speakerVoice,
-          options: allVoices.map((voice) => {
-            return { label: voice.label, value: voice.id };
-          }),
-          onChange: (newVoiceId) => {
-            this.playAudioClip(VOICE_ANNOUNCEMENT.MUTED, newVoiceId);
-            this.settings.audioSettings['speakerVoice'] = newVoiceId;
-          },
-        })
-      );
+      settingsPanel.element
+        .getElementsByClassName('plugin-inputs collapsible')[0]
+        .append(
+          this.buildSetting({
+            type: 'dropdown',
+            id: 'speakerVoice',
+            name: 'Voice',
+            note: 'Change the voice of the announcer. A sample announcement will be played when changing this setting.',
+            value: this.settings.audioSettings.speakerVoice,
+            options: allVoices.map((voice) => {
+              return { label: voice.label, value: voice.id };
+            }),
+            onChange: (newVoiceId) => {
+              this.playAudioClip(VOICE_ANNOUNCEMENT.MUTED, newVoiceId);
+              this.settings.audioSettings['speakerVoice'] = newVoiceId;
+            },
+          }).getElement()
+        );
 
       settingsPanel.addListener((categoryId, settingId, value) => {
         Logger.info(categoryId, settingId, value);
