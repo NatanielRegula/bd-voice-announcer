@@ -120,6 +120,77 @@
         },
         {
             "type": "category",
+            "id": "enableDisableAnnouncements",
+            "name": "Enable or Disable Specific Announcements",
+            "shown": true,
+            "settings": [
+                {
+                    "type": "switch",
+                    "id": "connected",
+                    "name": "Connected",
+                    "note": "Announcement when you connect to a voice channel.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "disconnected",
+                    "name": "Disconnected",
+                    "note": "Announcement when you disconnect from a voice channel.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "channelSwitched",
+                    "name": "Channel Switched",
+                    "note": "Announcement when you switch to a different voice channel.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "muted",
+                    "name": "Muted",
+                    "note": "Announcement when you muted your microphone.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "unmuted",
+                    "name": "Unmuted",
+                    "note": "Announcement when you unmuted your microphone.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "deafened",
+                    "name": "Deafened",
+                    "note": "Announcement when you deafened your audio.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "undeafened",
+                    "name": "Undeafened",
+                    "note": "Announcement when you undeafened your audio.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "userJoinedYourChannel",
+                    "name": "User Joined Your Channel",
+                    "note": "Announcement when a user joins your voice channel.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "userLeftYourChannel",
+                    "name": "User Left Your Channel",
+                    "note": "Announcement when a user leaves your voice channel.",
+                    "value": true
+                }
+            ]
+        },
+        {
+            "type": "category",
             "id": "advancedSettings",
             "name": "Advanced",
             "shown": true,

@@ -28,24 +28,16 @@ module.exports = (Plugin, Library) => {
 
   const localVoices = [...voicesJson.female, ...voicesJson.male];
 
-  const SOUNDS_THAT_THIS_PLUGIN_REPLACES = [
-    'deafen',
-    'undeafen',
-    'mute',
-    'unmute',
-    'disconnect',
-    'user_join',
-    'user_leave',
-    'user_moved',
-  ];
-
   const VOICE_ANNOUNCEMENT = Object.freeze({
-    CONNECTED: { name: 'connected', replacesInDis: ['undeafen'] },
-    DEAFENED: { name: 'deafened', replacesInDis: ['deafen'] },
+    CONNECTED: { name: 'connected', replacesInDis: ['user_join'] },
     DISCONNECTED: { name: 'disconnected', replacesInDis: ['disconnect'] },
-    ERROR: { name: 'error', replacesInDis: [] },
-    MUTED: { name: 'muted', replacesInDis: ['mute'] },
+    CHANNEL_SWITCHED: {
+      name: 'channelSwitched',
+      replacesInDis: ['user_moved'],
+    },
+    DEAFENED: { name: 'deafened', replacesInDis: ['deafen'] },
     UNDEAFENED: { name: 'undeafened', replacesInDis: ['undeafen'] },
+    MUTED: { name: 'muted', replacesInDis: ['mute'] },
     UNMUTED: { name: 'unmuted', replacesInDis: ['unmute'] },
     USER_JOINED_YOUR_CHANNEL: {
       name: 'userJoinedYourChannel',
@@ -55,10 +47,8 @@ module.exports = (Plugin, Library) => {
       name: 'userLeftYourChannel',
       replacesInDis: ['user_leave'],
     },
-    CHANNEL_SWITCHED: {
-      name: 'channelSwitched',
-      replacesInDis: ['user_moved'],
-    },
+
+    ERROR: { name: 'error', replacesInDis: [] },
   });
 
   return class VoiceMutedAnnouncer extends Plugin {
@@ -116,6 +106,8 @@ module.exports = (Plugin, Library) => {
       //stock sounds
       this.disableStockDisSounds = this.disableStockDisSounds.bind(this);
       this.restoreStockDisSounds = this.restoreStockDisSounds.bind(this);
+      this.restoreSingleStockDisSounds =
+        this.restoreSingleStockDisSounds.bind(this);
       //settings
       this.setDefaultValuesForSettings =
         this.setDefaultValuesForSettings.bind(this);
@@ -274,7 +266,7 @@ module.exports = (Plugin, Library) => {
     getSettingsPanel() {
       const allVoices = this.getAllVoices();
       const settingsPanel = this.buildSettingsPanel();
-
+      // Logger.info(settingsPanel);
       settingsPanel.append(
         this.buildSetting({
           type: 'dropdown',
@@ -292,8 +284,18 @@ module.exports = (Plugin, Library) => {
         })
       );
 
-      settingsPanel.addListener((category, settingId, value) => {
-        Logger.info(category, settingId, value);
+      settingsPanel.addListener((categoryId, settingId, value) => {
+        Logger.info(categoryId, settingId, value);
+
+        if (categoryId === 'enableDisableAnnouncements') {
+          if (value) {
+            this.disableStockDisSounds();
+          } else {
+            this.restoreSingleStockDisSounds(settingId);
+          }
+
+          return;
+        }
 
         switch (settingId) {
           case 'disableDiscordStockSounds':
@@ -363,6 +365,13 @@ module.exports = (Plugin, Library) => {
     }
 
     playAudioClip(src, overrideVoiceId) {
+      //TODO  && overrideVoiceId == undefined is a hack to make sure it makes a sound when trying a voice pack even if muted is disabled
+      if (
+        !this.settings.enableDisableAnnouncements[src.name] &&
+        overrideVoiceId == undefined
+      )
+        return;
+
       const audioPlayer = new Audio(
         this.getSelectedSpeakerVoice(overrideVoiceId).audioClips[src.name]
       );
@@ -393,8 +402,15 @@ module.exports = (Plugin, Library) => {
         );
       }
 
+      const soundsToDisable = [];
+      for (const [_, value] of Object.entries(VOICE_ANNOUNCEMENT)) {
+        if (!this.settings.enableDisableAnnouncements[value.name]) continue;
+
+        soundsToDisable.push(...value.replacesInDis);
+      }
+
       DisNotificationSettingsController.setDisabledSounds([
-        ...SOUNDS_THAT_THIS_PLUGIN_REPLACES,
+        ...soundsToDisable,
         ...Utilities.loadData(
           'VoiceAnnouncer',
           'stockSoundsDisabledBeforeManipulated',
@@ -421,6 +437,40 @@ module.exports = (Plugin, Library) => {
       Utilities.saveData('VoiceAnnouncer', 'stockSoundsManipulated', false);
     }
 
+    restoreSingleStockDisSounds(name) {
+      if (
+        !Utilities.loadData('VoiceAnnouncer', 'stockSoundsManipulated', false)
+      )
+        return;
+
+      const stockSoundsDisabledBeforeManipulated = Utilities.loadData(
+        'VoiceAnnouncer',
+        'stockSoundsDisabledBeforeManipulated',
+        []
+      );
+
+      let disSoundsToRestore;
+      Object.entries(VOICE_ANNOUNCEMENT).forEach(([key, value]) => {
+        if (Object.is(value.name, name)) {
+          Logger.info(value);
+          disSoundsToRestore = value.replacesInDis;
+        }
+      });
+
+      disSoundsToRestore.forEach((disSoundToRestore) => {
+        if (stockSoundsDisabledBeforeManipulated.includes(disSoundToRestore)) {
+          Logger.debug('not removing because it is in original list');
+          return;
+        }
+
+        DisNotificationSettingsController.setDisabledSounds(
+          DisNotificationSettingsStore.getDisabledSounds().filter(
+            (e) => e !== disSoundToRestore
+          )
+        );
+      });
+    }
+
     setDefaultValuesForSettings() {
       const allVoices = this.getAllVoices();
       if (this.settings.audioSettings.disableDiscordStockSounds === undefined) {
@@ -432,6 +482,9 @@ module.exports = (Plugin, Library) => {
     }
 
     ///-----Events Subscribing-----///
+    // handleDisabledAnnouncement(e) {
+
+    // }
     setUpListeners() {
       this.disEventListenerPairs.forEach((eventListenerPair) => {
         Dispatcher.subscribe(...eventListenerPair);
