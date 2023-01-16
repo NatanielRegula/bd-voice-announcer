@@ -159,7 +159,7 @@ const config = {
                     type: "switch",
                     id: "connected",
                     name: "Connected",
-                    note: "Announcement when you connect to a voice channel.",
+                    note: "Announcement when you connect to a voice channel. **************** WARNING: due to the fact that in discord the same stock sound is used for \"Connected\" and \"User Joined Your Channel\" you should set these two announcements to matching value (enabled or disabled) to avoid unforeseen behavior.",
                     value: true
                 },
                 {
@@ -208,7 +208,7 @@ const config = {
                     type: "switch",
                     id: "userJoinedYourChannel",
                     name: "User Joined Your Channel",
-                    note: "Announcement when a user joins your voice channel.",
+                    note: "Announcement when a user joins your voice channel. **************** WARNING: due to the fact that in discord the same stock sound is used for \"Connected\" and \"User Joined Your Channel\" you should set these two announcements to matching value (enabled or disabled) to avoid unforeseen behavior.",
                     value: true
                 },
                 {
