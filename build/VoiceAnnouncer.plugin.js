@@ -607,14 +607,10 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         .getElementsByClassName('plugin-inputs collapsible')[1]
         .prepend(warningElement);
       settingsPanel.addListener((categoryId, settingId, value) => {
-        Logger.info(categoryId, settingId, value);
-
         if (categoryId === 'enableDisableAnnouncements') {
-          if (value) {
-            this.disableStockDisSounds();
-          } else {
-            this.restoreSingleStockDisSounds(settingId);
-          }
+          value
+            ? this.disableStockDisSounds()
+            : this.restoreSingleStockDisSounds(settingId);
 
           return;
         }
@@ -767,16 +763,13 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       let disSoundsToRestore;
       Object.entries(VOICE_ANNOUNCEMENT).forEach(([key, value]) => {
         if (Object.is(value.name, voiceAnnouncementName)) {
-          Logger.info(value);
           disSoundsToRestore = value.replacesInDis;
         }
       });
 
       disSoundsToRestore.forEach((disSoundToRestore) => {
-        if (stockSoundsDisabledBeforeManipulated.includes(disSoundToRestore)) {
-          Logger.debug('not removing because it is in original list');
+        if (stockSoundsDisabledBeforeManipulated.includes(disSoundToRestore))
           return;
-        }
 
         DisNotificationSettingsController.setDisabledSounds(
           DisNotificationSettingsStore.getDisabledSounds().filter(
