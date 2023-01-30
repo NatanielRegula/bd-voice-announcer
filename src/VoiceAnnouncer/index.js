@@ -125,14 +125,13 @@ module.exports = (Plugin, Library) => {
       this.setDefaultValuesForSettings =
         this.setDefaultValuesForSettings.bind(this);
       this.patchContextMenus = this.patchContextMenus.bind(this);
-      this.handleMarkUserAsBot = this.setIsMarkUserAsBot.bind(this);
     }
 
-    setIsMarkUserAsBot(userId, isBot) {
+    setIsMarkUserAsBot(userId, value) {
       Utilities.saveData(
         'VoiceAnnouncer',
         `isUserMarkedAsBotById-${userId}`,
-        isBot
+        value
       );
     }
 
@@ -140,6 +139,22 @@ module.exports = (Plugin, Library) => {
       return Utilities.loadData(
         'VoiceAnnouncer',
         `isUserMarkedAsBotById-${userId}`,
+        false
+      );
+    }
+
+    setIsJoinedLeftAnnouncementDisabled(userId, value) {
+      Utilities.saveData(
+        'VoiceAnnouncer',
+        `isJoinedLeftAnnouncementDisabledById-${userId}`,
+        value
+      );
+    }
+
+    getIsJoinedLeftAnnouncementDisabled(userId) {
+      return Utilities.loadData(
+        'VoiceAnnouncer',
+        `isJoinedLeftAnnouncementDisabledById-${userId}`,
         false
       );
     }
@@ -167,11 +182,14 @@ module.exports = (Plugin, Library) => {
                 ContextMenu.buildItem({
                   type: 'toggle',
                   label: 'Disable Joined/Left channel',
-                  checked: false,
-                  action: (newValue) => {
-                    console.log(newValue);
-                  },
+                  checked: this.getIsJoinedLeftAnnouncementDisabled(userId),
+                  action: () =>
+                    this.setIsJoinedLeftAnnouncementDisabled(
+                      userId,
+                      !this.getIsJoinedLeftAnnouncementDisabled(userId)
+                    ),
                 }),
+
                 ContextMenu.buildItem({
                   type: 'toggle',
                   label: 'Mark As a Bot',
@@ -257,7 +275,7 @@ module.exports = (Plugin, Library) => {
         if (idsOfUsersWhoLeft.includes(this.cachedCurrentUserId)) return;
 
         idsOfUsersWhoJoined.forEach((userId) => {
-          Logger.info(this.getIsUserMarkedAsBot(userId));
+          if (this.getIsJoinedLeftAnnouncementDisabled(userId)) return;
 
           this.getIsUserMarkedAsBot(userId)
             ? this.playAudioClip(VOICE_ANNOUNCEMENT.BOT_JOINED_YOUR_CHANNEL)
@@ -265,7 +283,7 @@ module.exports = (Plugin, Library) => {
         });
 
         idsOfUsersWhoLeft.forEach((userId) => {
-          Logger.info(this.getIsUserMarkedAsBot(userId));
+          if (this.getIsJoinedLeftAnnouncementDisabled(userId)) return;
           this.getIsUserMarkedAsBot(userId)
             ? this.playAudioClip(VOICE_ANNOUNCEMENT.BOT_LEFT_YOUR_CHANNEL)
             : this.playAudioClip(VOICE_ANNOUNCEMENT.USER_LEFT_YOUR_CHANNEL);
@@ -471,16 +489,12 @@ module.exports = (Plugin, Library) => {
       )
         return;
 
-      // try {
       const audioPlayer = new Audio(
         this.getSelectedSpeakerVoice(overrideVoiceId).audioClips[src.name]
       );
       audioPlayer.volume = this.settings.audioSettings.voiceNotificationVolume;
 
       audioPlayer.play().then(() => audioPlayer.remove());
-      // } catch (error) {
-      //   Logger.error(error);
-      // }
     }
 
     shouldMakeSound() {
