@@ -125,10 +125,10 @@ module.exports = (Plugin, Library) => {
       this.setDefaultValuesForSettings =
         this.setDefaultValuesForSettings.bind(this);
       this.patchContextMenus = this.patchContextMenus.bind(this);
-      this.handleMarkUserAsBot = this.handleMarkUserAsBot.bind(this);
+      this.handleMarkUserAsBot = this.setIsMarkUserAsBot.bind(this);
     }
 
-    handleMarkUserAsBot(userId, isBot) {
+    setIsMarkUserAsBot(userId, isBot) {
       Utilities.saveData(
         'VoiceAnnouncer',
         `isUserMarkedAsBotById-${userId}`,
@@ -136,7 +136,7 @@ module.exports = (Plugin, Library) => {
       );
     }
 
-    isUserMarkedAsBot(userId) {
+    getIsUserMarkedAsBot(userId) {
       return Utilities.loadData(
         'VoiceAnnouncer',
         `isUserMarkedAsBotById-${userId}`,
@@ -149,7 +149,6 @@ module.exports = (Plugin, Library) => {
       this.contextMenuPatch = ContextMenu.patch(
         'user-context',
         (element, ...rest) => {
-          // Logger.info();
           const userId = rest[0]?.user.id;
           if (userId === undefined || userId === null) return;
 
@@ -178,11 +177,11 @@ module.exports = (Plugin, Library) => {
                   label: 'Mark As a Bot',
                   subtext:
                     'This will replace "User" with "Bot" for all the standard announcements, for example when the bot joins your voice channel you will hear "Bot joined your channel".',
-                  checked: this.isUserMarkedAsBot(userId),
+                  checked: this.getIsUserMarkedAsBot(userId),
                   action: () =>
-                    this.handleMarkUserAsBot(
+                    this.setIsMarkUserAsBot(
                       userId,
-                      !this.isUserMarkedAsBot(userId)
+                      !this.getIsUserMarkedAsBot(userId)
                     ),
                 }),
               ],
@@ -258,16 +257,16 @@ module.exports = (Plugin, Library) => {
         if (idsOfUsersWhoLeft.includes(this.cachedCurrentUserId)) return;
 
         idsOfUsersWhoJoined.forEach((userId) => {
-          Logger.info(this.isUserMarkedAsBot(userId));
+          Logger.info(this.getIsUserMarkedAsBot(userId));
 
-          this.isUserMarkedAsBot(userId)
+          this.getIsUserMarkedAsBot(userId)
             ? this.playAudioClip(VOICE_ANNOUNCEMENT.BOT_JOINED_YOUR_CHANNEL)
             : this.playAudioClip(VOICE_ANNOUNCEMENT.USER_JOINED_YOUR_CHANNEL);
         });
 
         idsOfUsersWhoLeft.forEach((userId) => {
-          Logger.info(this.isUserMarkedAsBot(userId));
-          this.isUserMarkedAsBot(userId)
+          Logger.info(this.getIsUserMarkedAsBot(userId));
+          this.getIsUserMarkedAsBot(userId)
             ? this.playAudioClip(VOICE_ANNOUNCEMENT.BOT_LEFT_YOUR_CHANNEL)
             : this.playAudioClip(VOICE_ANNOUNCEMENT.USER_LEFT_YOUR_CHANNEL);
         });
