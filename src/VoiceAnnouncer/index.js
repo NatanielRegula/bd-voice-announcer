@@ -9,6 +9,10 @@
 
 module.exports = (Plugin, Library) => {
   const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
+  const ZContextMenu = Library.ContextMenu;
+
+  const { ContextMenu, DOM } = window.BdApi;
+  // const collections = window.BdApi.settings;
 
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
   const DisVoiceStateStore = WebpackModules.getByProps(
@@ -23,6 +27,8 @@ module.exports = (Plugin, Library) => {
     WebpackModules.getByProps('isSoundDisabled');
   const DisNotificationSettingsController =
     WebpackModules.getByProps('setDisabledSounds');
+
+  const UserSettingsWindow = WebpackModules.getByProps('open', 'updateAccount');
 
   const voicesJson = JSON.parse(require('voices.json'));
 
@@ -111,6 +117,58 @@ module.exports = (Plugin, Library) => {
       //settings
       this.setDefaultValuesForSettings =
         this.setDefaultValuesForSettings.bind(this);
+      this.patchContextMenus = this.patchContextMenus.bind(this);
+    }
+
+    handleMarkUserAsBot(userId, isBot) {}
+
+    ///-----Patch Context Menus For VC Users-----///
+    patchContextMenus() {
+      this.contextMenuPatch = ContextMenu.patch(
+        'user-context',
+        (element, ...rest) => {
+          // Logger.info();
+          const userId = rest[0]?.user.id;
+          if (userId === undefined || userId === null) return;
+
+          const childrenOfContextMenu =
+            element.props.children[0].props.children;
+          childrenOfContextMenu.push(
+            ContextMenu.buildItem({ type: 'separator' })
+          );
+          childrenOfContextMenu.push(
+            ContextMenu.buildItem({
+              type: 'menu',
+              label: 'VoiceAnnouncer',
+              children: [
+                ContextMenu.buildItem({
+                  type: 'toggle',
+                  label: 'Disable Joined/Left channel',
+                  checked: false,
+                  action: (newValue) => {
+                    console.log(newValue);
+                  },
+                }),
+                ContextMenu.buildItem({
+                  type: 'toggle',
+                  label: 'Mark As a Bot',
+                  subtext:
+                    'This will replace "User" with "Bot" for all the standard announcements, for example when the bot joins your voice channel you will hear "Bot joined your channel".',
+                  checked: false,
+                  action: (newValue) => {
+                    console.log(newValue);
+                  },
+                }),
+              ],
+            })
+          );
+          // element.props.children.props.children[0].push({
+          //   type: 'submenu',
+          //   label: 'BetterDiscord',
+          //   items: [],
+          // });
+        }
+      );
     }
 
     ///-----Misc-----///
@@ -249,8 +307,11 @@ module.exports = (Plugin, Library) => {
     ///-----Life Cycle & BD/Z Specific-----///
     onStart() {
       Logger.info('Plugin enabled!');
+      Logger.info(ZContextMenu);
       this.setDefaultValuesForSettings();
       this.disableStockDisSounds();
+      this.patchContextMenus();
+      // ZContextMenu.initialize();
 
       if (this.cachedVoiceChannelId != null) {
         this.refreshCurrentVoiceChannelUsersIdsCache();
@@ -329,6 +390,7 @@ module.exports = (Plugin, Library) => {
       window.voiceAnnouncerAdditionalVoicesArray = undefined;
       this.restoreStockDisSounds();
       this.disposeListeners();
+      this.contextMenuPatch?.();
     }
 
     ///-----Voice Announcements-----///
