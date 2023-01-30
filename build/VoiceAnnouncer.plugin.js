@@ -699,7 +699,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       const settingsPanel = this.buildSettingsPanel();
       const warningElement = document.createElement('div');
       warningElement.innerHTML =
-        '<p>WARNING: due to the fact that in discord the same stock sound is used for "Connected" and "User Joined Your Channel" you should set these two announcements to matching value (enabled or disabled) to avoid unforeseen behavior.</p>';
+        '<span style="font-weight:600; padding-bottom:0.5rem;">WARNING</span></br ><p style="padding-bottom:0.5rem;">Due to the fact that in discord the same stock sound is used for "Connected" and "User Joined Your Channel" you should set these two announcements to matching value (enabled or disabled) to avoid unforeseen behavior.</p> <p>The same goes for "User" "Bot" variations of commands.</p>';
       warningElement.style.backgroundColor = 'var(--info-warning-foreground)';
       warningElement.style.padding = '0.5rem 1rem';
       warningElement.style.borderRadius = '5px';
