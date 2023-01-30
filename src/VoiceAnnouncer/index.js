@@ -9,6 +9,10 @@
 
 module.exports = (Plugin, Library) => {
   const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
+  const ZContextMenu = Library.ContextMenu;
+
+  const { ContextMenu, DOM } = window.BdApi;
+  // const collections = window.BdApi.settings;
 
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
   const DisVoiceStateStore = WebpackModules.getByProps(
@@ -24,9 +28,10 @@ module.exports = (Plugin, Library) => {
   const DisNotificationSettingsController =
     WebpackModules.getByProps('setDisabledSounds');
 
-  const voicesJson = JSON.parse(require('voices.json'));
-
-  const localVoices = [...voicesJson.female, ...voicesJson.male];
+  const localVoices = [
+    JSON.parse(require('female.json')),
+    JSON.parse(require('male.json')),
+  ];
 
   const VOICE_ANNOUNCEMENT = Object.freeze({
     CONNECTED: { name: 'connected', replacesInDis: ['user_join'] },
@@ -43,8 +48,16 @@ module.exports = (Plugin, Library) => {
       name: 'userJoinedYourChannel',
       replacesInDis: ['user_join'],
     },
+    BOT_JOINED_YOUR_CHANNEL: {
+      name: 'botJoinedYourChannel',
+      replacesInDis: ['user_join'],
+    },
     USER_LEFT_YOUR_CHANNEL: {
       name: 'userLeftYourChannel',
+      replacesInDis: ['user_leave'],
+    },
+    BOT_LEFT_YOUR_CHANNEL: {
+      name: 'botLeftYourChannel',
       replacesInDis: ['user_leave'],
     },
 
@@ -111,6 +124,94 @@ module.exports = (Plugin, Library) => {
       //settings
       this.setDefaultValuesForSettings =
         this.setDefaultValuesForSettings.bind(this);
+      this.patchContextMenus = this.patchContextMenus.bind(this);
+    }
+
+    setIsMarkUserAsBot(userId, value) {
+      Utilities.saveData(
+        'VoiceAnnouncer',
+        `isUserMarkedAsBotById-${userId}`,
+        value
+      );
+    }
+
+    getIsUserMarkedAsBot(userId) {
+      return Utilities.loadData(
+        'VoiceAnnouncer',
+        `isUserMarkedAsBotById-${userId}`,
+        false
+      );
+    }
+
+    setIsJoinedLeftAnnouncementDisabled(userId, value) {
+      Utilities.saveData(
+        'VoiceAnnouncer',
+        `isJoinedLeftAnnouncementDisabledById-${userId}`,
+        value
+      );
+    }
+
+    getIsJoinedLeftAnnouncementDisabled(userId) {
+      return Utilities.loadData(
+        'VoiceAnnouncer',
+        `isJoinedLeftAnnouncementDisabledById-${userId}`,
+        false
+      );
+    }
+
+    ///-----Patch Context Menus For VC Users-----///
+    patchContextMenus() {
+      this.contextMenuPatch = ContextMenu.patch(
+        'user-context',
+        (element, ...rest) => {
+          const userId = rest[0]?.user.id;
+          if (userId === undefined || userId === null) return;
+
+          const childrenOfContextMenu =
+            element.props.children[0].props.children;
+
+          childrenOfContextMenu.push(
+            ContextMenu.buildItem({ type: 'separator' })
+          );
+
+          childrenOfContextMenu.push(
+            ContextMenu.buildItem({
+              type: 'menu',
+              label: 'VoiceAnnouncer',
+              children: [
+                ContextMenu.buildItem({
+                  type: 'toggle',
+                  label: 'Disable Joined/Left channel',
+                  checked: this.getIsJoinedLeftAnnouncementDisabled(userId),
+                  action: () =>
+                    this.setIsJoinedLeftAnnouncementDisabled(
+                      userId,
+                      !this.getIsJoinedLeftAnnouncementDisabled(userId)
+                    ),
+                }),
+
+                ContextMenu.buildItem({
+                  type: 'toggle',
+                  label: 'Mark As a Bot',
+                  subtext:
+                    'This will replace "User" with "Bot" for all the standard announcements, for example when the bot joins your voice channel you will hear "Bot joined your channel".',
+                  checked: this.getIsUserMarkedAsBot(userId),
+                  action: () =>
+                    this.setIsMarkUserAsBot(
+                      userId,
+                      !this.getIsUserMarkedAsBot(userId)
+                    ),
+                }),
+              ],
+            })
+          );
+          // element.props.children.props.children[0].push({
+          //   type: 'submenu',
+          //   label: 'BetterDiscord',
+          //   items: [],
+          // });
+        }
+      );
     }
 
     ///-----Misc-----///
@@ -174,11 +275,18 @@ module.exports = (Plugin, Library) => {
         if (idsOfUsersWhoLeft.includes(this.cachedCurrentUserId)) return;
 
         idsOfUsersWhoJoined.forEach((userId) => {
-          this.playAudioClip(VOICE_ANNOUNCEMENT.USER_JOINED_YOUR_CHANNEL);
+          if (this.getIsJoinedLeftAnnouncementDisabled(userId)) return;
+
+          this.getIsUserMarkedAsBot(userId)
+            ? this.playAudioClip(VOICE_ANNOUNCEMENT.BOT_JOINED_YOUR_CHANNEL)
+            : this.playAudioClip(VOICE_ANNOUNCEMENT.USER_JOINED_YOUR_CHANNEL);
         });
 
         idsOfUsersWhoLeft.forEach((userId) => {
-          this.playAudioClip(VOICE_ANNOUNCEMENT.USER_LEFT_YOUR_CHANNEL);
+          if (this.getIsJoinedLeftAnnouncementDisabled(userId)) return;
+          this.getIsUserMarkedAsBot(userId)
+            ? this.playAudioClip(VOICE_ANNOUNCEMENT.BOT_LEFT_YOUR_CHANNEL)
+            : this.playAudioClip(VOICE_ANNOUNCEMENT.USER_LEFT_YOUR_CHANNEL);
         });
       } catch (error) {
         Logger.error(error);
@@ -249,8 +357,11 @@ module.exports = (Plugin, Library) => {
     ///-----Life Cycle & BD/Z Specific-----///
     onStart() {
       Logger.info('Plugin enabled!');
+      Logger.info(ZContextMenu);
       this.setDefaultValuesForSettings();
       this.disableStockDisSounds();
+      this.patchContextMenus();
+      // ZContextMenu.initialize();
 
       if (this.cachedVoiceChannelId != null) {
         this.refreshCurrentVoiceChannelUsersIdsCache();
@@ -268,7 +379,7 @@ module.exports = (Plugin, Library) => {
       const settingsPanel = this.buildSettingsPanel();
       const warningElement = document.createElement('div');
       warningElement.innerHTML =
-        '<p>WARNING: due to the fact that in discord the same stock sound is used for "Connected" and "User Joined Your Channel" you should set these two announcements to matching value (enabled or disabled) to avoid unforeseen behavior.</p>';
+        '<span style="font-weight:600; padding-bottom:0.5rem;">WARNING</span></br ><p style="padding-bottom:0.5rem;">Due to the fact that in discord the same stock sound is used for "Connected" and "User Joined Your Channel" you should set these two announcements to matching value (enabled or disabled) to avoid unforeseen behavior.</p> <p>The same goes for "User" "Bot" variations of commands.</p>';
       warningElement.style.backgroundColor = 'var(--info-warning-foreground)';
       warningElement.style.padding = '0.5rem 1rem';
       warningElement.style.borderRadius = '5px';
@@ -298,14 +409,10 @@ module.exports = (Plugin, Library) => {
         .getElementsByClassName('plugin-inputs collapsible')[1]
         .prepend(warningElement);
       settingsPanel.addListener((categoryId, settingId, value) => {
-        Logger.info(categoryId, settingId, value);
-
         if (categoryId === 'enableDisableAnnouncements') {
-          if (value) {
-            this.disableStockDisSounds();
-          } else {
-            this.restoreSingleStockDisSounds(settingId);
-          }
+          value
+            ? this.disableStockDisSounds()
+            : this.restoreSingleStockDisSounds(settingId);
 
           return;
         }
@@ -333,6 +440,7 @@ module.exports = (Plugin, Library) => {
       window.voiceAnnouncerAdditionalVoicesArray = undefined;
       this.restoreStockDisSounds();
       this.disposeListeners();
+      this.contextMenuPatch?.();
     }
 
     ///-----Voice Announcements-----///
@@ -371,6 +479,9 @@ module.exports = (Plugin, Library) => {
     }
 
     playAudioClip(src, overrideVoiceId) {
+      // Logger.log(
+      //   this.getSelectedSpeakerVoice(overrideVoiceId).audioClips[src.name]
+      // );
       //TODO  && overrideVoiceId == undefined is a hack to make sure it makes a sound when trying a voice pack even if muted is disabled
       if (
         !this.settings.enableDisableAnnouncements[src.name] &&
@@ -458,16 +569,13 @@ module.exports = (Plugin, Library) => {
       let disSoundsToRestore;
       Object.entries(VOICE_ANNOUNCEMENT).forEach(([key, value]) => {
         if (Object.is(value.name, voiceAnnouncementName)) {
-          Logger.info(value);
           disSoundsToRestore = value.replacesInDis;
         }
       });
 
       disSoundsToRestore.forEach((disSoundToRestore) => {
-        if (stockSoundsDisabledBeforeManipulated.includes(disSoundToRestore)) {
-          Logger.debug('not removing because it is in original list');
+        if (stockSoundsDisabledBeforeManipulated.includes(disSoundToRestore))
           return;
-        }
 
         DisNotificationSettingsController.setDisabledSounds(
           DisNotificationSettingsStore.getDisabledSounds().filter(
