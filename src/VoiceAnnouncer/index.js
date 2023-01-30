@@ -28,8 +28,6 @@ module.exports = (Plugin, Library) => {
   const DisNotificationSettingsController =
     WebpackModules.getByProps('setDisabledSounds');
 
-  const UserSettingsWindow = WebpackModules.getByProps('open', 'updateAccount');
-
   const localVoices = [
     JSON.parse(require('female.json')),
     JSON.parse(require('male.json')),
@@ -50,8 +48,16 @@ module.exports = (Plugin, Library) => {
       name: 'userJoinedYourChannel',
       replacesInDis: ['user_join'],
     },
+    BOT_JOINED_YOUR_CHANNEL: {
+      name: 'botJoinedYourChannel',
+      replacesInDis: ['user_join'],
+    },
     USER_LEFT_YOUR_CHANNEL: {
       name: 'userLeftYourChannel',
+      replacesInDis: ['user_leave'],
+    },
+    BOT_LEFT_YOUR_CHANNEL: {
+      name: 'botLeftYourChannel',
       replacesInDis: ['user_leave'],
     },
 
@@ -119,9 +125,24 @@ module.exports = (Plugin, Library) => {
       this.setDefaultValuesForSettings =
         this.setDefaultValuesForSettings.bind(this);
       this.patchContextMenus = this.patchContextMenus.bind(this);
+      this.handleMarkUserAsBot = this.handleMarkUserAsBot.bind(this);
     }
 
-    handleMarkUserAsBot(userId, isBot) {}
+    handleMarkUserAsBot(userId, isBot) {
+      Utilities.saveData(
+        'VoiceAnnouncer',
+        `isUserMarkedAsBotById-${userId}`,
+        isBot
+      );
+    }
+
+    isUserMarkedAsBot(userId) {
+      return Utilities.loadData(
+        'VoiceAnnouncer',
+        `isUserMarkedAsBotById-${userId}`,
+        false
+      );
+    }
 
     ///-----Patch Context Menus For VC Users-----///
     patchContextMenus() {
@@ -134,9 +155,11 @@ module.exports = (Plugin, Library) => {
 
           const childrenOfContextMenu =
             element.props.children[0].props.children;
+
           childrenOfContextMenu.push(
             ContextMenu.buildItem({ type: 'separator' })
           );
+
           childrenOfContextMenu.push(
             ContextMenu.buildItem({
               type: 'menu',
@@ -155,10 +178,12 @@ module.exports = (Plugin, Library) => {
                   label: 'Mark As a Bot',
                   subtext:
                     'This will replace "User" with "Bot" for all the standard announcements, for example when the bot joins your voice channel you will hear "Bot joined your channel".',
-                  checked: false,
-                  action: (newValue) => {
-                    console.log(newValue);
-                  },
+                  checked: this.isUserMarkedAsBot(userId),
+                  action: () =>
+                    this.handleMarkUserAsBot(
+                      userId,
+                      !this.isUserMarkedAsBot(userId)
+                    ),
                 }),
               ],
             })
@@ -233,11 +258,18 @@ module.exports = (Plugin, Library) => {
         if (idsOfUsersWhoLeft.includes(this.cachedCurrentUserId)) return;
 
         idsOfUsersWhoJoined.forEach((userId) => {
-          this.playAudioClip(VOICE_ANNOUNCEMENT.USER_JOINED_YOUR_CHANNEL);
+          Logger.info(this.isUserMarkedAsBot(userId));
+
+          this.isUserMarkedAsBot(userId)
+            ? this.playAudioClip(VOICE_ANNOUNCEMENT.BOT_JOINED_YOUR_CHANNEL)
+            : this.playAudioClip(VOICE_ANNOUNCEMENT.USER_JOINED_YOUR_CHANNEL);
         });
 
         idsOfUsersWhoLeft.forEach((userId) => {
-          this.playAudioClip(VOICE_ANNOUNCEMENT.USER_LEFT_YOUR_CHANNEL);
+          Logger.info(this.isUserMarkedAsBot(userId));
+          this.isUserMarkedAsBot(userId)
+            ? this.playAudioClip(VOICE_ANNOUNCEMENT.BOT_LEFT_YOUR_CHANNEL)
+            : this.playAudioClip(VOICE_ANNOUNCEMENT.USER_LEFT_YOUR_CHANNEL);
         });
       } catch (error) {
         Logger.error(error);
@@ -430,6 +462,9 @@ module.exports = (Plugin, Library) => {
     }
 
     playAudioClip(src, overrideVoiceId) {
+      // Logger.log(
+      //   this.getSelectedSpeakerVoice(overrideVoiceId).audioClips[src.name]
+      // );
       //TODO  && overrideVoiceId == undefined is a hack to make sure it makes a sound when trying a voice pack even if muted is disabled
       if (
         !this.settings.enableDisableAnnouncements[src.name] &&
@@ -437,12 +472,16 @@ module.exports = (Plugin, Library) => {
       )
         return;
 
+      // try {
       const audioPlayer = new Audio(
         this.getSelectedSpeakerVoice(overrideVoiceId).audioClips[src.name]
       );
       audioPlayer.volume = this.settings.audioSettings.voiceNotificationVolume;
 
       audioPlayer.play().then(() => audioPlayer.remove());
+      // } catch (error) {
+      //   Logger.error(error);
+      // }
     }
 
     shouldMakeSound() {

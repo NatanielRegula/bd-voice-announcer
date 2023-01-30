@@ -204,9 +204,23 @@
                 },
                 {
                     "type": "switch",
+                    "id": "botJoinedYourChannel",
+                    "name": "Bot Joined Your Channel",
+                    "note": "Announcement when a bot joins your voice channel.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
                     "id": "userLeftYourChannel",
                     "name": "User Left Your Channel",
                     "note": "Announcement when a user leaves your voice channel.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "botLeftYourChannel",
+                    "name": "Bot Left Your Channel",
+                    "note": "Announcement when a bot leaves your voice channel.",
                     "value": true
                 }
             ]
