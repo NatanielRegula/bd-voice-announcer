@@ -1,7 +1,7 @@
 /**
  * @name VoiceAnnouncer
  * @description Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.
- * @version 0.0.14
+ * @version 0.0.15
  * @author NR
  * @source https://github.com/NatanielRegula/bd-voice-announcer
  * @donate paypal.me/NatanielRegula
@@ -36,7 +36,7 @@ const config = {
     author: "NR",
     authorId: "",
     authorLink: "",
-    version: "0.0.14",
+    version: "0.0.15",
     description: "Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.",
     website: "",
     source: "https://github.com/NatanielRegula/bd-voice-announcer",
@@ -44,6 +44,15 @@ const config = {
     donate: "paypal.me/NatanielRegula",
     invite: "",
     changelog: [
+        {
+            title: "0.0.15",
+            type: "improved",
+            items: [
+                "Added a context menu option (right click on a user in channel) to allow for per user settings.",
+                "Added a per user setting \"Mark As a Bot\" that will replace \"User\" with \"Bot\" for all the standard announcements, for example when a bot joins your voice channel you will hear \"Bot joined your channel\".",
+                "Added a per user setting to disable Left/Joined channel announcement."
+            ]
+        },
         {
             title: "0.0.14",
             type: "improved",
