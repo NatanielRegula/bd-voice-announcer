@@ -5,7 +5,7 @@
 		"watch": "while inotifywait -e close_write src/VoiceAnnouncer/*; do zpl build VoiceAnnouncer; done",
 		"watch:voice": "while inotifywait -e close_write src/FemaleUKVoiceForVA/*; do zpl build FemaleUKVoiceForVA; done",
 		"watch:all": "npm run watch & npm run watch:voice",
-		"genvoices": "genvoice -l 'VA Female US 2 (default)' -n 'female' -i src/VoiceAnnouncer/muted_unmuted/female/female_uk_2/trimmed -I '746bdd5b-006f-4fb9-af9c-49c501b8820d' -o src/VoiceAnnouncer/female.json ; genvoice -l 'VA Male US 3' -n 'male' -i src/VoiceAnnouncer/muted_unmuted/male/male_us_3/trimmed -I '19bf9af2-bb3a-44f0-87b4-aff5b7964274' -o src/VoiceAnnouncer/male.json"
+		"genvoices": "genvoice -l 'VA Female US 2 (default)'  -i src/VoiceAnnouncer/muted_unmuted/female/female_uk_2/trimmed -I '746bdd5b-006f-4fb9-af9c-49c501b8820d' -o src/VoiceAnnouncer/female.json ; genvoice -l 'VA Male US 3'  -i src/VoiceAnnouncer/muted_unmuted/male/male_us_3/trimmed -I '19bf9af2-bb3a-44f0-87b4-aff5b7964274' -o src/VoiceAnnouncer/male.json"
 	},
 	"devDependencies": {
 		"zerespluginlibrary": "^2.0.6"

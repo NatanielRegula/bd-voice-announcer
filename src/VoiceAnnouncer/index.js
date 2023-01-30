@@ -30,9 +30,10 @@ module.exports = (Plugin, Library) => {
 
   const UserSettingsWindow = WebpackModules.getByProps('open', 'updateAccount');
 
-  const voicesJson = JSON.parse(require('voices.json'));
-
-  const localVoices = [...voicesJson.female, ...voicesJson.male];
+  const localVoices = [
+    JSON.parse(require('female.json')),
+    JSON.parse(require('male.json')),
+  ];
 
   const VOICE_ANNOUNCEMENT = Object.freeze({
     CONNECTED: { name: 'connected', replacesInDis: ['user_join'] },
