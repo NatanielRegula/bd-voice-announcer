@@ -45,6 +45,13 @@ const config = {
     invite: "",
     changelog: [
         {
+            title: "0.0.16",
+            type: "improved",
+            items: [
+                "Bots are now detected automatically (this can be disabled in the settings)"
+            ]
+        },
+        {
             title: "0.0.15",
             type: "improved",
             items: [
@@ -267,6 +274,28 @@ const config = {
         },
         {
             type: "category",
+            id: "botSpecificSettings",
+            name: "Bot Specific",
+            shown: false,
+            settings: [
+                {
+                    type: "switch",
+                    id: "automaticallyDetectIfUserIsBot",
+                    name: "Automatically Detect If a User Is a Bot",
+                    note: "If disabled you have to manually mark a user as a bot. If enabled bots in vc will automatically be marked as bots and so the standard announcements will be adjusted accordingly, for example when the bot joins your voice channel you will hear \"Bot joined your channel\". Please note that if you manually unmark or mark a user the automatic detection for that user will be disabled from that point onward.",
+                    value: true
+                },
+                {
+                    type: "switch",
+                    id: "disableAnnouncementsForAllBots",
+                    name: "Disable Announcements For All Bots",
+                    note: "If enabled bot specific announcements such as \"A bot left your channel\" will be disabled for all bots.",
+                    value: false
+                }
+            ]
+        },
+        {
+            type: "category",
             id: "advancedSettings",
             name: "Advanced",
             shown: false,
@@ -306,8 +335,7 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
   const ZContextMenu = Library.ContextMenu;
 
-  const { ContextMenu, DOM } = window.BdApi;
-  // const collections = window.BdApi.settings;
+  const { ContextMenu, Data } = window.BdApi;
 
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
   const DisVoiceStateStore = WebpackModules.getByProps(
@@ -454,26 +482,36 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       this.setDefaultValuesForSettings =
         this.setDefaultValuesForSettings.bind(this);
       this.patchContextMenus = this.patchContextMenus.bind(this);
+      this.getIsUserABot = this.getIsUserABot.bind(this);
+      this.getIsJoinedLeftAnnouncementDisabled =
+        this.getIsJoinedLeftAnnouncementDisabled.bind(this);
     }
 
     setIsMarkUserAsBot(userId, value) {
-      Utilities.saveData(
-        'VoiceAnnouncer',
-        `isUserMarkedAsBotById-${userId}`,
-        value
-      );
+      Data.save('VoiceAnnouncer', `isUserMarkedAsBotById-${userId}`, value);
     }
 
-    getIsUserMarkedAsBot(userId) {
-      return Utilities.loadData(
+    getIsUserABot(userId) {
+      const overriddenMarkedValue = Data.load(
         'VoiceAnnouncer',
-        `isUserMarkedAsBotById-${userId}`,
-        false
+        `isUserMarkedAsBotById-${userId}`
       );
+      Logger.log(overriddenMarkedValue);
+      if (overriddenMarkedValue !== undefined) return overriddenMarkedValue;
+
+      const userData = DisUserStore.getUser(userId);
+
+      const autoDetectedIsBot = this.settings.botSpecificSettings
+        .automaticallyDetectIfUserIsBot
+        ? userData.bot
+        : null;
+      Logger.log(`autoDetectedIsBot ${autoDetectedIsBot}`);
+
+      return autoDetectedIsBot ?? false;
     }
 
     setIsJoinedLeftAnnouncementDisabled(userId, value) {
-      Utilities.saveData(
+      Data.save(
         'VoiceAnnouncer',
         `isJoinedLeftAnnouncementDisabledById-${userId}`,
         value
@@ -481,20 +519,26 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     getIsJoinedLeftAnnouncementDisabled(userId) {
-      return Utilities.loadData(
+      const overriddenValue = Data.load(
         'VoiceAnnouncer',
-        `isJoinedLeftAnnouncementDisabledById-${userId}`,
-        false
+        `isJoinedLeftAnnouncementDisabledById-${userId}`
       );
+      if (overriddenValue !== undefined) return overriddenValue;
+
+      const disabledAnnouncementsForAllBots = this.getIsUserABot(userId)
+        ? this.settings.botSpecificSettings.disableAnnouncementsForAllBots
+        : null;
+
+      return disabledAnnouncementsForAllBots ?? false;
     }
 
     ///-----Patch Context Menus For VC Users-----///
     patchContextMenus() {
       this.contextMenuPatch = ContextMenu.patch(
         'user-context',
-        (element, ...rest) => {
-          const userId = rest[0]?.user.id;
-          if (userId === undefined || userId === null) return;
+        (element, data) => {
+          const userData = data.user;
+          if (userData === undefined || userData === null) return;
 
           const childrenOfContextMenu =
             element.props.children[0].props.children;
@@ -511,11 +555,13 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
                 ContextMenu.buildItem({
                   type: 'toggle',
                   label: 'Disable Joined/Left channel',
-                  checked: this.getIsJoinedLeftAnnouncementDisabled(userId),
+                  checked: this.getIsJoinedLeftAnnouncementDisabled(
+                    userData.id
+                  ),
                   action: () =>
                     this.setIsJoinedLeftAnnouncementDisabled(
-                      userId,
-                      !this.getIsJoinedLeftAnnouncementDisabled(userId)
+                      userData.id,
+                      !this.getIsJoinedLeftAnnouncementDisabled(userData.id)
                     ),
                 }),
 
@@ -524,11 +570,11 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
                   label: 'Mark As a Bot',
                   subtext:
                     'This will replace "User" with "Bot" for all the standard announcements, for example when the bot joins your voice channel you will hear "Bot joined your channel".',
-                  checked: this.getIsUserMarkedAsBot(userId),
+                  checked: this.getIsUserABot(userData.id),
                   action: () =>
                     this.setIsMarkUserAsBot(
-                      userId,
-                      !this.getIsUserMarkedAsBot(userId)
+                      userData.id,
+                      !this.getIsUserABot(userData.id)
                     ),
                 }),
               ],
@@ -606,14 +652,14 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         idsOfUsersWhoJoined.forEach((userId) => {
           if (this.getIsJoinedLeftAnnouncementDisabled(userId)) return;
 
-          this.getIsUserMarkedAsBot(userId)
+          this.getIsUserABot(userId)
             ? this.playAudioClip(VOICE_ANNOUNCEMENT.BOT_JOINED_YOUR_CHANNEL)
             : this.playAudioClip(VOICE_ANNOUNCEMENT.USER_JOINED_YOUR_CHANNEL);
         });
 
         idsOfUsersWhoLeft.forEach((userId) => {
           if (this.getIsJoinedLeftAnnouncementDisabled(userId)) return;
-          this.getIsUserMarkedAsBot(userId)
+          this.getIsUserABot(userId)
             ? this.playAudioClip(VOICE_ANNOUNCEMENT.BOT_LEFT_YOUR_CHANNEL)
             : this.playAudioClip(VOICE_ANNOUNCEMENT.USER_LEFT_YOUR_CHANNEL);
         });
@@ -838,10 +884,8 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     disableStockDisSounds() {
       if (!this.settings.audioSettings.disableDiscordStockSounds) return;
 
-      if (
-        !Utilities.loadData('VoiceAnnouncer', 'stockSoundsManipulated', false)
-      ) {
-        Utilities.saveData(
+      if (!(Data.load('VoiceAnnouncer', 'stockSoundsManipulated') ?? false)) {
+        Data.save(
           'VoiceAnnouncer',
           'stockSoundsDisabledBeforeManipulated',
           DisNotificationSettingsStore.getDisabledSounds()
@@ -857,43 +901,33 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
       DisNotificationSettingsController.setDisabledSounds([
         ...soundsToDisable,
-        ...Utilities.loadData(
+        ...(Data.load(
           'VoiceAnnouncer',
-          'stockSoundsDisabledBeforeManipulated',
-          []
-        ),
+          'stockSoundsDisabledBeforeManipulated'
+        ) ?? []),
       ]);
 
-      Utilities.saveData('VoiceAnnouncer', 'stockSoundsManipulated', true);
+      Data.save('VoiceAnnouncer', 'stockSoundsManipulated', true);
     }
 
     restoreStockDisSounds() {
-      if (
-        !Utilities.loadData('VoiceAnnouncer', 'stockSoundsManipulated', false)
-      )
+      if (!(Data.load('VoiceAnnouncer', 'stockSoundsManipulated') ?? false))
         return;
 
       DisNotificationSettingsController.setDisabledSounds(
-        Utilities.loadData(
-          'VoiceAnnouncer',
-          'stockSoundsDisabledBeforeManipulated',
+        Data.load('VoiceAnnouncer', 'stockSoundsDisabledBeforeManipulated') ??
           []
-        )
       );
-      Utilities.saveData('VoiceAnnouncer', 'stockSoundsManipulated', false);
+      Data.save('VoiceAnnouncer', 'stockSoundsManipulated', false);
     }
 
     restoreSingleStockDisSounds(voiceAnnouncementName) {
-      if (
-        !Utilities.loadData('VoiceAnnouncer', 'stockSoundsManipulated', false)
-      )
+      if (!(Data.load('VoiceAnnouncer', 'stockSoundsManipulated') ?? false))
         return;
 
-      const stockSoundsDisabledBeforeManipulated = Utilities.loadData(
-        'VoiceAnnouncer',
-        'stockSoundsDisabledBeforeManipulated',
-        []
-      );
+      const stockSoundsDisabledBeforeManipulated =
+        Data.load('VoiceAnnouncer', 'stockSoundsDisabledBeforeManipulated') ??
+        [];
 
       let disSoundsToRestore;
       Object.entries(VOICE_ANNOUNCEMENT).forEach(([key, value]) => {
