@@ -138,7 +138,6 @@ module.exports = (Plugin, Library) => {
         'VoiceAnnouncer',
         `isUserMarkedAsBotById-${userId}`
       );
-      Logger.log(overriddenMarkedValue);
       if (overriddenMarkedValue !== undefined) return overriddenMarkedValue;
 
       const userData = DisUserStore.getUser(userId);
@@ -147,7 +146,6 @@ module.exports = (Plugin, Library) => {
         .automaticallyDetectIfUserIsBot
         ? userData.bot
         : null;
-      Logger.log(`autoDetectedIsBot ${autoDetectedIsBot}`);
 
       return autoDetectedIsBot ?? false;
     }
