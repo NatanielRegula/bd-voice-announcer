@@ -9,23 +9,27 @@
 
 module.exports = (Plugin, Library) => {
   const BdApi = new window.BdApi('VoiceAnnouncer');
-  const { ContextMenu, Data } = BdApi;
+  const { ContextMenu, Data, Webpack } = BdApi;
 
-  const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
+  const { Logger, DiscordModules } = Library;
 
-  const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
-  const DisVoiceStateStore = WebpackModules.getByProps(
-    'getVoiceStateForUser',
-    'getVoiceStatesForChannel'
-  );
   const DisStreamerModeStore = DiscordModules.StreamerModeStore;
   const DisMediaInfo = DiscordModules.MediaInfo;
   const DisSelectedChannelStore = DiscordModules.SelectedChannelStore;
   const DisUserStore = DiscordModules.UserStore;
-  const DisNotificationSettingsStore =
-    WebpackModules.getByProps('isSoundDisabled');
-  const DisNotificationSettingsController =
-    WebpackModules.getByProps('setDisabledSounds');
+
+  const Dispatcher = Webpack.getModule(
+    Webpack.Filters.byProps('dispatch', 'subscribe')
+  );
+  const DisVoiceStateStore = Webpack.getModule(
+    Webpack.Filters.byProps('getVoiceStateForUser', 'getVoiceStatesForChannel')
+  );
+  const DisNotificationSettingsStore = Webpack.getModule(
+    Webpack.Filters.byProps('isSoundDisabled', 'getTTSType')
+  );
+  const DisNotificationSettingsController = Webpack.getModule(
+    Webpack.Filters.byProps('setDisabledSounds', 'setTTSType')
+  );
 
   const localVoices = [
     JSON.parse(require('female.json')),
