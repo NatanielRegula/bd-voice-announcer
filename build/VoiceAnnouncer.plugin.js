@@ -1,7 +1,7 @@
 /**
  * @name VoiceAnnouncer
  * @description Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.
- * @version 0.0.15
+ * @version 0.0.17
  * @author NR
  * @source https://github.com/NatanielRegula/bd-voice-announcer
  * @donate paypal.me/NatanielRegula
@@ -36,7 +36,7 @@ const config = {
     author: "NR",
     authorId: "",
     authorLink: "",
-    version: "0.0.15",
+    version: "0.0.17",
     description: "Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.",
     website: "",
     source: "https://github.com/NatanielRegula/bd-voice-announcer",
@@ -44,6 +44,13 @@ const config = {
     donate: "paypal.me/NatanielRegula",
     invite: "",
     changelog: [
+        {
+            title: "0.0.17",
+            type: "improved",
+            items: [
+                "Code refactored to make it more readable and less prone to bugs."
+            ]
+        },
         {
             title: "0.0.16",
             type: "improved",
