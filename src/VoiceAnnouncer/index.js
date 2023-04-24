@@ -8,10 +8,10 @@
  */
 
 module.exports = (Plugin, Library) => {
-  const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
-  const ZContextMenu = Library.ContextMenu;
+  const BdApi = new window.BdApi('VoiceAnnouncer');
+  const { ContextMenu, Data } = BdApi;
 
-  const { ContextMenu, Data } = window.BdApi;
+  const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
 
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
   const DisVoiceStateStore = WebpackModules.getByProps(
@@ -130,12 +130,11 @@ module.exports = (Plugin, Library) => {
     }
 
     setIsMarkUserAsBot(userId, value) {
-      Data.save('VoiceAnnouncer', `isUserMarkedAsBotById-${userId}`, value);
+      Data.save(`isUserMarkedAsBotById-${userId}`, value);
     }
 
     getIsUserABot(userId) {
       const overriddenMarkedValue = Data.load(
-        'VoiceAnnouncer',
         `isUserMarkedAsBotById-${userId}`
       );
       if (overriddenMarkedValue !== undefined) return overriddenMarkedValue;
@@ -151,16 +150,11 @@ module.exports = (Plugin, Library) => {
     }
 
     setIsJoinedLeftAnnouncementDisabled(userId, value) {
-      Data.save(
-        'VoiceAnnouncer',
-        `isJoinedLeftAnnouncementDisabledById-${userId}`,
-        value
-      );
+      Data.save(`isJoinedLeftAnnouncementDisabledById-${userId}`, value);
     }
 
     getIsJoinedLeftAnnouncementDisabled(userId) {
       const overriddenValue = Data.load(
-        'VoiceAnnouncer',
         `isJoinedLeftAnnouncementDisabledById-${userId}`
       );
       if (overriddenValue !== undefined) return overriddenValue;
@@ -190,7 +184,7 @@ module.exports = (Plugin, Library) => {
           childrenOfContextMenu.push(
             ContextMenu.buildItem({
               type: 'menu',
-              label: 'VoiceAnnouncer',
+              label: this.getName(),
               children: [
                 ContextMenu.buildItem({
                   type: 'toggle',
@@ -372,11 +366,9 @@ module.exports = (Plugin, Library) => {
     ///-----Life Cycle & BD/Z Specific-----///
     onStart() {
       Logger.info('Plugin enabled!');
-      Logger.info(ZContextMenu);
       this.setDefaultValuesForSettings();
       this.disableStockDisSounds();
       this.patchContextMenus();
-      // ZContextMenu.initialize();
 
       if (this.cachedVoiceChannelId != null) {
         this.refreshCurrentVoiceChannelUsersIdsCache();
@@ -524,9 +516,8 @@ module.exports = (Plugin, Library) => {
     disableStockDisSounds() {
       if (!this.settings.audioSettings.disableDiscordStockSounds) return;
 
-      if (!(Data.load('VoiceAnnouncer', 'stockSoundsManipulated') ?? false)) {
+      if (!(Data.load('stockSoundsManipulated') ?? false)) {
         Data.save(
-          'VoiceAnnouncer',
           'stockSoundsDisabledBeforeManipulated',
           DisNotificationSettingsStore.getDisabledSounds()
         );
@@ -541,33 +532,26 @@ module.exports = (Plugin, Library) => {
 
       DisNotificationSettingsController.setDisabledSounds([
         ...soundsToDisable,
-        ...(Data.load(
-          'VoiceAnnouncer',
-          'stockSoundsDisabledBeforeManipulated'
-        ) ?? []),
+        ...(Data.load('stockSoundsDisabledBeforeManipulated') ?? []),
       ]);
 
-      Data.save('VoiceAnnouncer', 'stockSoundsManipulated', true);
+      Data.save('stockSoundsManipulated', true);
     }
 
     restoreStockDisSounds() {
-      if (!(Data.load('VoiceAnnouncer', 'stockSoundsManipulated') ?? false))
-        return;
+      if (!(Data.load('stockSoundsManipulated') ?? false)) return;
 
       DisNotificationSettingsController.setDisabledSounds(
-        Data.load('VoiceAnnouncer', 'stockSoundsDisabledBeforeManipulated') ??
-          []
+        Data.load('stockSoundsDisabledBeforeManipulated') ?? []
       );
-      Data.save('VoiceAnnouncer', 'stockSoundsManipulated', false);
+      Data.save('stockSoundsManipulated', false);
     }
 
     restoreSingleStockDisSounds(voiceAnnouncementName) {
-      if (!(Data.load('VoiceAnnouncer', 'stockSoundsManipulated') ?? false))
-        return;
+      if (!(Data.load('stockSoundsManipulated') ?? false)) return;
 
       const stockSoundsDisabledBeforeManipulated =
-        Data.load('VoiceAnnouncer', 'stockSoundsDisabledBeforeManipulated') ??
-        [];
+        Data.load('stockSoundsDisabledBeforeManipulated') ?? [];
 
       let disSoundsToRestore;
       Object.entries(VOICE_ANNOUNCEMENT).forEach(([key, value]) => {
