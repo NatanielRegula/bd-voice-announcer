@@ -5,7 +5,7 @@
     "author": "NR",
     "authorId": "",
     "authorLink": "",
-    "version": "0.0.15",
+    "version": "0.0.17",
     "description": "Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.",
     "website": "",
     "source": "https://github.com/NatanielRegula/bd-voice-announcer",
@@ -13,6 +13,20 @@
     "donate": "paypal.me/NatanielRegula",
     "invite": "",
     "changelog": [
+        {
+            "title": "0.0.17",
+            "type": "improved",
+            "items": [
+                "Code refactored to make it more readable and less prone to bugs."
+            ]
+        },
+        {
+            "title": "0.0.16",
+            "type": "improved",
+            "items": [
+                "Bots are now detected automatically (this can be disabled in the settings)"
+            ]
+        },
         {
             "title": "0.0.15",
             "type": "improved",
@@ -231,6 +245,28 @@
                     "name": "Bot Left Your Channel",
                     "note": "Announcement when a bot leaves your voice channel.",
                     "value": true
+                }
+            ]
+        },
+        {
+            "type": "category",
+            "id": "botSpecificSettings",
+            "name": "Bot Specific",
+            "shown": false,
+            "settings": [
+                {
+                    "type": "switch",
+                    "id": "automaticallyDetectIfUserIsBot",
+                    "name": "Automatically Detect If a User Is a Bot",
+                    "note": "If disabled you have to manually mark a user as a bot. If enabled bots in vc will automatically be marked as bots and so the standard announcements will be adjusted accordingly, for example when the bot joins your voice channel you will hear \"Bot joined your channel\". Please note that if you manually unmark or mark a user the automatic detection for that user will be disabled from that point onward.",
+                    "value": true
+                },
+                {
+                    "type": "switch",
+                    "id": "disableAnnouncementsForAllBots",
+                    "name": "Disable Announcements For All Bots",
+                    "note": "If enabled bot specific announcements such as \"A bot left your channel\" will be disabled for all bots.",
+                    "value": false
                 }
             ]
         },

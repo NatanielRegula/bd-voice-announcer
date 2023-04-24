@@ -7,32 +7,63 @@
  * @returns
  */
 
+/**
+ * @typedef {{
+ * id:string
+ * label:string
+ * audioClips: {
+ * botJoinedYourChannel: string
+ * botLeftYourChannel: string
+ * channelSwitched: string
+ * connected: string
+ * deafened: string
+ * disconnected: string
+ * error: string
+ * muted: string
+ * undeafened: string
+ * unmuted: string
+ * userJoinedYourChannel: string
+ * userLeftYourChannel: string
+ * }
+ * }} VoiceData
+ */
+
 module.exports = (Plugin, Library) => {
-  const { Logger, Utilities, WebpackModules, DiscordModules } = Library;
-  const ZContextMenu = Library.ContextMenu;
+  const BdApi = new window.BdApi('VoiceAnnouncer');
+  const { ContextMenu, Data, Webpack } = BdApi;
 
-  const { ContextMenu, DOM } = window.BdApi;
-  // const collections = window.BdApi.settings;
-
-  const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
-  const DisVoiceStateStore = WebpackModules.getByProps(
-    'getVoiceStateForUser',
-    'getVoiceStatesForChannel'
-  );
+  const { Logger, DiscordModules } = Library;
   const DisStreamerModeStore = DiscordModules.StreamerModeStore;
   const DisMediaInfo = DiscordModules.MediaInfo;
   const DisSelectedChannelStore = DiscordModules.SelectedChannelStore;
   const DisUserStore = DiscordModules.UserStore;
-  const DisNotificationSettingsStore =
-    WebpackModules.getByProps('isSoundDisabled');
-  const DisNotificationSettingsController =
-    WebpackModules.getByProps('setDisabledSounds');
+
+  const Dispatcher = Webpack.getModule(
+    Webpack.Filters.byProps('dispatch', 'subscribe')
+  );
+  const DisVoiceStateStore = Webpack.getModule(
+    Webpack.Filters.byProps('getVoiceStateForUser', 'getVoiceStatesForChannel')
+  );
+  const DisNotificationSettingsStore = Webpack.getModule(
+    Webpack.Filters.byProps('isSoundDisabled', 'getTTSType')
+  );
+  const DisNotificationSettingsController = Webpack.getModule(
+    Webpack.Filters.byProps('setDisabledSounds', 'setTTSType')
+  );
 
   const localVoices = [
     JSON.parse(require('female.json')),
     JSON.parse(require('male.json')),
   ];
 
+  /**
+   *
+   * @readonly
+   * @enum {{
+   * name: string,
+   * replacesInDis: Array<string>,
+   * }}
+   */
   const VOICE_ANNOUNCEMENT = Object.freeze({
     CONNECTED: { name: 'connected', replacesInDis: ['user_join'] },
     DISCONNECTED: { name: 'disconnected', replacesInDis: ['disconnect'] },
@@ -63,6 +94,26 @@ module.exports = (Plugin, Library) => {
 
     ERROR: { name: 'error', replacesInDis: [] },
   });
+
+  /**
+   * Returns the enum with name equal to the one passed to this function.
+   *
+   * Null will be returned if the matching enum is not found.
+   * @param {string} name
+   * @returns {VOICE_ANNOUNCEMENT?}
+   */
+  const getVoiceAnnouncementByName = (name) => {
+    /**@type {VOICE_ANNOUNCEMENT?} */
+    let r;
+
+    Object.entries(VOICE_ANNOUNCEMENT).forEach(([_, value]) => {
+      if (Object.is(value.name, name)) {
+        r = value;
+      }
+    });
+
+    return r;
+  };
 
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
@@ -125,47 +176,77 @@ module.exports = (Plugin, Library) => {
       this.setDefaultValuesForSettings =
         this.setDefaultValuesForSettings.bind(this);
       this.patchContextMenus = this.patchContextMenus.bind(this);
+      this.getIsUserABot = this.getIsUserABot.bind(this);
+      this.getIsJoinedLeftAnnouncementDisabled =
+        this.getIsJoinedLeftAnnouncementDisabled.bind(this);
     }
 
+    /**
+     *
+     * @param {string} userId
+     * @param {boolean} value
+     * @returns
+     */
     setIsMarkUserAsBot(userId, value) {
-      Utilities.saveData(
-        'VoiceAnnouncer',
-        `isUserMarkedAsBotById-${userId}`,
-        value
-      );
+      Data.save(`isUserMarkedAsBotById-${userId}`, value);
     }
 
-    getIsUserMarkedAsBot(userId) {
-      return Utilities.loadData(
-        'VoiceAnnouncer',
-        `isUserMarkedAsBotById-${userId}`,
-        false
+    /**
+     *
+     * @param {string} userId
+     * @returns {boolean}
+     */
+    getIsUserABot(userId) {
+      const overriddenMarkedValue = Data.load(
+        `isUserMarkedAsBotById-${userId}`
       );
+      if (overriddenMarkedValue !== undefined) return overriddenMarkedValue;
+
+      const userData = DisUserStore.getUser(userId);
+
+      const autoDetectedIsBot = this.settings.botSpecificSettings
+        .automaticallyDetectIfUserIsBot
+        ? userData.bot
+        : null;
+
+      return autoDetectedIsBot ?? false;
     }
 
+    /**
+     *
+     * @param {string} userId
+     * @param {boolean} value
+     * @returns
+     */
     setIsJoinedLeftAnnouncementDisabled(userId, value) {
-      Utilities.saveData(
-        'VoiceAnnouncer',
-        `isJoinedLeftAnnouncementDisabledById-${userId}`,
-        value
-      );
+      Data.save(`isJoinedLeftAnnouncementDisabledById-${userId}`, value);
     }
 
+    /**
+     *
+     * @param {string} userId
+     * @returns {boolean}
+     */
     getIsJoinedLeftAnnouncementDisabled(userId) {
-      return Utilities.loadData(
-        'VoiceAnnouncer',
-        `isJoinedLeftAnnouncementDisabledById-${userId}`,
-        false
+      const overriddenValue = Data.load(
+        `isJoinedLeftAnnouncementDisabledById-${userId}`
       );
+      if (overriddenValue !== undefined) return overriddenValue;
+
+      const disabledAnnouncementsForAllBots = this.getIsUserABot(userId)
+        ? this.settings.botSpecificSettings.disableAnnouncementsForAllBots
+        : null;
+
+      return disabledAnnouncementsForAllBots ?? false;
     }
 
     ///-----Patch Context Menus For VC Users-----///
     patchContextMenus() {
       this.contextMenuPatch = ContextMenu.patch(
         'user-context',
-        (element, ...rest) => {
-          const userId = rest[0]?.user.id;
-          if (userId === undefined || userId === null) return;
+        (element, data) => {
+          const userData = data.user;
+          if (userData === undefined || userData === null) return;
 
           const childrenOfContextMenu =
             element.props.children[0].props.children;
@@ -177,16 +258,18 @@ module.exports = (Plugin, Library) => {
           childrenOfContextMenu.push(
             ContextMenu.buildItem({
               type: 'menu',
-              label: 'VoiceAnnouncer',
+              label: this.getName(),
               children: [
                 ContextMenu.buildItem({
                   type: 'toggle',
                   label: 'Disable Joined/Left channel',
-                  checked: this.getIsJoinedLeftAnnouncementDisabled(userId),
+                  checked: this.getIsJoinedLeftAnnouncementDisabled(
+                    userData.id
+                  ),
                   action: () =>
                     this.setIsJoinedLeftAnnouncementDisabled(
-                      userId,
-                      !this.getIsJoinedLeftAnnouncementDisabled(userId)
+                      userData.id,
+                      !this.getIsJoinedLeftAnnouncementDisabled(userData.id)
                     ),
                 }),
 
@@ -195,11 +278,11 @@ module.exports = (Plugin, Library) => {
                   label: 'Mark As a Bot',
                   subtext:
                     'This will replace "User" with "Bot" for all the standard announcements, for example when the bot joins your voice channel you will hear "Bot joined your channel".',
-                  checked: this.getIsUserMarkedAsBot(userId),
+                  checked: this.getIsUserABot(userData.id),
                   action: () =>
                     this.setIsMarkUserAsBot(
-                      userId,
-                      !this.getIsUserMarkedAsBot(userId)
+                      userData.id,
+                      !this.getIsUserABot(userData.id)
                     ),
                 }),
               ],
@@ -215,12 +298,18 @@ module.exports = (Plugin, Library) => {
     }
 
     ///-----Misc-----///
+    /**
+     * @returns {Array<string>}
+     */
     getCurrentVoiceChannelUsersIds() {
       const voiceStatesForCurrentVoiceChannelObject =
         DisVoiceStateStore.getVoiceStatesForChannel(
           DisSelectedChannelStore.getVoiceChannelId()
         );
 
+      /**
+       * @type {Array<string>}
+       */
       const currentVoiceChannelUsersIds = Object.keys(
         voiceStatesForCurrentVoiceChannelObject
       ).map((key) => voiceStatesForCurrentVoiceChannelObject[key].userId);
@@ -277,14 +366,14 @@ module.exports = (Plugin, Library) => {
         idsOfUsersWhoJoined.forEach((userId) => {
           if (this.getIsJoinedLeftAnnouncementDisabled(userId)) return;
 
-          this.getIsUserMarkedAsBot(userId)
+          this.getIsUserABot(userId)
             ? this.playAudioClip(VOICE_ANNOUNCEMENT.BOT_JOINED_YOUR_CHANNEL)
             : this.playAudioClip(VOICE_ANNOUNCEMENT.USER_JOINED_YOUR_CHANNEL);
         });
 
         idsOfUsersWhoLeft.forEach((userId) => {
           if (this.getIsJoinedLeftAnnouncementDisabled(userId)) return;
-          this.getIsUserMarkedAsBot(userId)
+          this.getIsUserABot(userId)
             ? this.playAudioClip(VOICE_ANNOUNCEMENT.BOT_LEFT_YOUR_CHANNEL)
             : this.playAudioClip(VOICE_ANNOUNCEMENT.USER_LEFT_YOUR_CHANNEL);
         });
@@ -357,11 +446,9 @@ module.exports = (Plugin, Library) => {
     ///-----Life Cycle & BD/Z Specific-----///
     onStart() {
       Logger.info('Plugin enabled!');
-      Logger.info(ZContextMenu);
       this.setDefaultValuesForSettings();
       this.disableStockDisSounds();
       this.patchContextMenus();
-      // ZContextMenu.initialize();
 
       if (this.cachedVoiceChannelId != null) {
         this.refreshCurrentVoiceChannelUsersIdsCache();
@@ -405,14 +492,21 @@ module.exports = (Plugin, Library) => {
             },
           }).getElement()
         );
+
       settingsPanel.element
         .getElementsByClassName('plugin-inputs collapsible')[1]
         .prepend(warningElement);
+
       settingsPanel.addListener((categoryId, settingId, value) => {
         if (categoryId === 'enableDisableAnnouncements') {
+          const correspondingVoiceAnnouncement =
+            getVoiceAnnouncementByName(settingId);
+
+          if (!correspondingVoiceAnnouncement) return;
+
           value
             ? this.disableStockDisSounds()
-            : this.restoreSingleStockDisSounds(settingId);
+            : this.restoreSingleStockDisSounds(correspondingVoiceAnnouncement);
 
           return;
         }
@@ -444,6 +538,10 @@ module.exports = (Plugin, Library) => {
     }
 
     ///-----Voice Announcements-----///
+    /**
+     *
+     * @returns {Array<VoiceData>}
+     */
     getAllVoices() {
       const allVoices = [
         ...localVoices,
@@ -452,8 +550,17 @@ module.exports = (Plugin, Library) => {
       return allVoices;
     }
 
+    /**
+     *
+     * @param {string?} overrideVoiceId
+     * @returns {VoiceData}
+     */
     getSelectedSpeakerVoice(overrideVoiceId) {
       const allVoices = this.getAllVoices();
+
+      /**
+       * @type {string}
+       */
       const selectedVoiceId =
         overrideVoiceId ?? this.settings.audioSettings.speakerVoice;
 
@@ -478,6 +585,12 @@ module.exports = (Plugin, Library) => {
       return voiceWithSelectedId[0];
     }
 
+    /**
+     *
+     * @param {VOICE_ANNOUNCEMENT} src
+     * @param {string} overrideVoiceId
+     * @returns
+     */
     playAudioClip(src, overrideVoiceId) {
       // Logger.log(
       //   this.getSelectedSpeakerVoice(overrideVoiceId).audioClips[src.name]
@@ -497,6 +610,10 @@ module.exports = (Plugin, Library) => {
       audioPlayer.play().then(() => audioPlayer.remove());
     }
 
+    /**
+     * Method that dictates whether any announcement should be played based on user settings.
+     * @returns {boolean}
+     */
     shouldMakeSound() {
       return !(
         this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
@@ -509,11 +626,8 @@ module.exports = (Plugin, Library) => {
     disableStockDisSounds() {
       if (!this.settings.audioSettings.disableDiscordStockSounds) return;
 
-      if (
-        !Utilities.loadData('VoiceAnnouncer', 'stockSoundsManipulated', false)
-      ) {
-        Utilities.saveData(
-          'VoiceAnnouncer',
+      if (!(Data.load('stockSoundsManipulated') ?? false)) {
+        Data.save(
           'stockSoundsDisabledBeforeManipulated',
           DisNotificationSettingsStore.getDisabledSounds()
         );
@@ -528,52 +642,33 @@ module.exports = (Plugin, Library) => {
 
       DisNotificationSettingsController.setDisabledSounds([
         ...soundsToDisable,
-        ...Utilities.loadData(
-          'VoiceAnnouncer',
-          'stockSoundsDisabledBeforeManipulated',
-          []
-        ),
+        ...(Data.load('stockSoundsDisabledBeforeManipulated') ?? []),
       ]);
 
-      Utilities.saveData('VoiceAnnouncer', 'stockSoundsManipulated', true);
+      Data.save('stockSoundsManipulated', true);
     }
 
     restoreStockDisSounds() {
-      if (
-        !Utilities.loadData('VoiceAnnouncer', 'stockSoundsManipulated', false)
-      )
-        return;
+      if (!(Data.load('stockSoundsManipulated') ?? false)) return;
 
       DisNotificationSettingsController.setDisabledSounds(
-        Utilities.loadData(
-          'VoiceAnnouncer',
-          'stockSoundsDisabledBeforeManipulated',
-          []
-        )
+        Data.load('stockSoundsDisabledBeforeManipulated') ?? []
       );
-      Utilities.saveData('VoiceAnnouncer', 'stockSoundsManipulated', false);
+      Data.save('stockSoundsManipulated', false);
     }
 
-    restoreSingleStockDisSounds(voiceAnnouncementName) {
-      if (
-        !Utilities.loadData('VoiceAnnouncer', 'stockSoundsManipulated', false)
-      )
-        return;
+    /**
+     *
+     * @param {VOICE_ANNOUNCEMENT} voiceAnnouncement
+     * @returns
+     */
+    restoreSingleStockDisSounds(voiceAnnouncement) {
+      if (!(Data.load('stockSoundsManipulated') ?? false)) return;
 
-      const stockSoundsDisabledBeforeManipulated = Utilities.loadData(
-        'VoiceAnnouncer',
-        'stockSoundsDisabledBeforeManipulated',
-        []
-      );
+      const stockSoundsDisabledBeforeManipulated =
+        Data.load('stockSoundsDisabledBeforeManipulated') ?? [];
 
-      let disSoundsToRestore;
-      Object.entries(VOICE_ANNOUNCEMENT).forEach(([key, value]) => {
-        if (Object.is(value.name, voiceAnnouncementName)) {
-          disSoundsToRestore = value.replacesInDis;
-        }
-      });
-
-      disSoundsToRestore.forEach((disSoundToRestore) => {
+      voiceAnnouncement.replacesInDis.forEach((disSoundToRestore) => {
         if (stockSoundsDisabledBeforeManipulated.includes(disSoundToRestore))
           return;
 
