@@ -95,6 +95,26 @@ module.exports = (Plugin, Library) => {
     ERROR: { name: 'error', replacesInDis: [] },
   });
 
+  /**
+   * Returns the enum with name equal to the one passed to this function.
+   *
+   * Null will be returned if the matching enum is not found.
+   * @param {string} name
+   * @returns {VOICE_ANNOUNCEMENT?}
+   */
+  const getVoiceAnnouncementByName = (name) => {
+    /**@type {VOICE_ANNOUNCEMENT?} */
+    let r;
+
+    Object.entries(VOICE_ANNOUNCEMENT).forEach(([_, value]) => {
+      if (Object.is(value.name, name)) {
+        r = value;
+      }
+    });
+
+    return r;
+  };
+
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
       super();
@@ -472,14 +492,21 @@ module.exports = (Plugin, Library) => {
             },
           }).getElement()
         );
+
       settingsPanel.element
         .getElementsByClassName('plugin-inputs collapsible')[1]
         .prepend(warningElement);
+
       settingsPanel.addListener((categoryId, settingId, value) => {
         if (categoryId === 'enableDisableAnnouncements') {
+          const correspondingVoiceAnnouncement =
+            getVoiceAnnouncementByName(settingId);
+
+          if (!correspondingVoiceAnnouncement) return;
+
           value
             ? this.disableStockDisSounds()
-            : this.restoreSingleStockDisSounds(settingId);
+            : this.restoreSingleStockDisSounds(correspondingVoiceAnnouncement);
 
           return;
         }
@@ -632,23 +659,16 @@ module.exports = (Plugin, Library) => {
 
     /**
      *
-     * @param {string} voiceAnnouncementName
+     * @param {VOICE_ANNOUNCEMENT} voiceAnnouncement
      * @returns
      */
-    restoreSingleStockDisSounds(voiceAnnouncementName) {
+    restoreSingleStockDisSounds(voiceAnnouncement) {
       if (!(Data.load('stockSoundsManipulated') ?? false)) return;
 
       const stockSoundsDisabledBeforeManipulated =
         Data.load('stockSoundsDisabledBeforeManipulated') ?? [];
 
-      let disSoundsToRestore;
-      Object.entries(VOICE_ANNOUNCEMENT).forEach(([key, value]) => {
-        if (Object.is(value.name, voiceAnnouncementName)) {
-          disSoundsToRestore = value.replacesInDis;
-        }
-      });
-
-      disSoundsToRestore.forEach((disSoundToRestore) => {
+      voiceAnnouncement.replacesInDis.forEach((disSoundToRestore) => {
         if (stockSoundsDisabledBeforeManipulated.includes(disSoundToRestore))
           return;
 

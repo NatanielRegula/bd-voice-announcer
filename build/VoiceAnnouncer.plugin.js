@@ -393,6 +393,14 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 }`),
   ];
 
+  /**
+   *
+   * @readonly
+   * @enum {{
+   * name: string,
+   * replacesInDis: Array<string>,
+   * }}
+   */
   const VOICE_ANNOUNCEMENT = Object.freeze({
     CONNECTED: { name: 'connected', replacesInDis: ['user_join'] },
     DISCONNECTED: { name: 'disconnected', replacesInDis: ['disconnect'] },
@@ -423,6 +431,26 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
 
     ERROR: { name: 'error', replacesInDis: [] },
   });
+
+  /**
+   * Returns the enum with name equal to the one passed to this function.
+   *
+   * Null will be returned if the matching enum is not found.
+   * @param {string} name
+   * @returns {VOICE_ANNOUNCEMENT?}
+   */
+  const getVoiceAnnouncementByName = (name) => {
+    /**@type {VOICE_ANNOUNCEMENT?} */
+    let r;
+
+    Object.entries(VOICE_ANNOUNCEMENT).forEach(([_, value]) => {
+      if (Object.is(value.name, name)) {
+        r = value;
+      }
+    });
+
+    return r;
+  };
 
   return class VoiceMutedAnnouncer extends Plugin {
     constructor() {
@@ -801,14 +829,21 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
             },
           }).getElement()
         );
+
       settingsPanel.element
         .getElementsByClassName('plugin-inputs collapsible')[1]
         .prepend(warningElement);
+
       settingsPanel.addListener((categoryId, settingId, value) => {
         if (categoryId === 'enableDisableAnnouncements') {
+          const correspondingVoiceAnnouncement =
+            getVoiceAnnouncementByName(settingId);
+
+          if (!correspondingVoiceAnnouncement) return;
+
           value
             ? this.disableStockDisSounds()
-            : this.restoreSingleStockDisSounds(settingId);
+            : this.restoreSingleStockDisSounds(correspondingVoiceAnnouncement);
 
           return;
         }
@@ -852,8 +887,17 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       return allVoices;
     }
 
+    /**
+     *
+     * @param {string?} overrideVoiceId
+     * @returns {VoiceData}
+     */
     getSelectedSpeakerVoice(overrideVoiceId) {
       const allVoices = this.getAllVoices();
+
+      /**
+       * @type {string}
+       */
       const selectedVoiceId =
         overrideVoiceId ?? this.settings.audioSettings.speakerVoice;
 
@@ -878,6 +922,12 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       return voiceWithSelectedId[0];
     }
 
+    /**
+     *
+     * @param {VOICE_ANNOUNCEMENT} src
+     * @param {string} overrideVoiceId
+     * @returns
+     */
     playAudioClip(src, overrideVoiceId) {
       // Logger.log(
       //   this.getSelectedSpeakerVoice(overrideVoiceId).audioClips[src.name]
@@ -897,6 +947,10 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       audioPlayer.play().then(() => audioPlayer.remove());
     }
 
+    /**
+     * Method that dictates whether any announcement should be played based on user settings.
+     * @returns {boolean}
+     */
     shouldMakeSound() {
       return !(
         this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
@@ -940,20 +994,18 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       Data.save('stockSoundsManipulated', false);
     }
 
-    restoreSingleStockDisSounds(voiceAnnouncementName) {
+    /**
+     *
+     * @param {VOICE_ANNOUNCEMENT} voiceAnnouncement
+     * @returns
+     */
+    restoreSingleStockDisSounds(voiceAnnouncement) {
       if (!(Data.load('stockSoundsManipulated') ?? false)) return;
 
       const stockSoundsDisabledBeforeManipulated =
         Data.load('stockSoundsDisabledBeforeManipulated') ?? [];
 
-      let disSoundsToRestore;
-      Object.entries(VOICE_ANNOUNCEMENT).forEach(([key, value]) => {
-        if (Object.is(value.name, voiceAnnouncementName)) {
-          disSoundsToRestore = value.replacesInDis;
-        }
-      });
-
-      disSoundsToRestore.forEach((disSoundToRestore) => {
+      voiceAnnouncement.replacesInDis.forEach((disSoundToRestore) => {
         if (stockSoundsDisabledBeforeManipulated.includes(disSoundToRestore))
           return;
 
