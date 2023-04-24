@@ -11,6 +11,8 @@ module.exports = (Plugin, Library) => {
 
   const Dispatcher = WebpackModules.getByProps('dispatch', 'subscribe');
 
+  const uuid = WebpackModules.getByProps('v4', 'v1', 'parse');
+
   const voicesJson = JSON.parse(require('voices.json'));
   const localVoices = [...voicesJson.female, ...voicesJson.male];
 
