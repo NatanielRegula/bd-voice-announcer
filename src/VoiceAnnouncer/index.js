@@ -7,12 +7,32 @@
  * @returns
  */
 
+/**
+ * @typedef {{
+ * id:string
+ * label:string
+ * audioClips: {
+ * botJoinedYourChannel: string
+ * botLeftYourChannel: string
+ * channelSwitched: string
+ * connected: string
+ * deafened: string
+ * disconnected: string
+ * error: string
+ * muted: string
+ * undeafened: string
+ * unmuted: string
+ * userJoinedYourChannel: string
+ * userLeftYourChannel: string
+ * }
+ * }} VoiceData
+ */
+
 module.exports = (Plugin, Library) => {
   const BdApi = new window.BdApi('VoiceAnnouncer');
   const { ContextMenu, Data, Webpack } = BdApi;
 
   const { Logger, DiscordModules } = Library;
-
   const DisStreamerModeStore = DiscordModules.StreamerModeStore;
   const DisMediaInfo = DiscordModules.MediaInfo;
   const DisSelectedChannelStore = DiscordModules.SelectedChannelStore;
@@ -36,6 +56,14 @@ module.exports = (Plugin, Library) => {
     JSON.parse(require('male.json')),
   ];
 
+  /**
+   *
+   * @readonly
+   * @enum {{
+   * name: string,
+   * replacesInDis: Array<string>,
+   * }}
+   */
   const VOICE_ANNOUNCEMENT = Object.freeze({
     CONNECTED: { name: 'connected', replacesInDis: ['user_join'] },
     DISCONNECTED: { name: 'disconnected', replacesInDis: ['disconnect'] },
@@ -133,10 +161,21 @@ module.exports = (Plugin, Library) => {
         this.getIsJoinedLeftAnnouncementDisabled.bind(this);
     }
 
+    /**
+     *
+     * @param {string} userId
+     * @param {boolean} value
+     * @returns
+     */
     setIsMarkUserAsBot(userId, value) {
       Data.save(`isUserMarkedAsBotById-${userId}`, value);
     }
 
+    /**
+     *
+     * @param {string} userId
+     * @returns {boolean}
+     */
     getIsUserABot(userId) {
       const overriddenMarkedValue = Data.load(
         `isUserMarkedAsBotById-${userId}`
@@ -153,10 +192,21 @@ module.exports = (Plugin, Library) => {
       return autoDetectedIsBot ?? false;
     }
 
+    /**
+     *
+     * @param {string} userId
+     * @param {boolean} value
+     * @returns
+     */
     setIsJoinedLeftAnnouncementDisabled(userId, value) {
       Data.save(`isJoinedLeftAnnouncementDisabledById-${userId}`, value);
     }
 
+    /**
+     *
+     * @param {string} userId
+     * @returns {boolean}
+     */
     getIsJoinedLeftAnnouncementDisabled(userId) {
       const overriddenValue = Data.load(
         `isJoinedLeftAnnouncementDisabledById-${userId}`
@@ -228,12 +278,18 @@ module.exports = (Plugin, Library) => {
     }
 
     ///-----Misc-----///
+    /**
+     * @returns {Array<string>}
+     */
     getCurrentVoiceChannelUsersIds() {
       const voiceStatesForCurrentVoiceChannelObject =
         DisVoiceStateStore.getVoiceStatesForChannel(
           DisSelectedChannelStore.getVoiceChannelId()
         );
 
+      /**
+       * @type {Array<string>}
+       */
       const currentVoiceChannelUsersIds = Object.keys(
         voiceStatesForCurrentVoiceChannelObject
       ).map((key) => voiceStatesForCurrentVoiceChannelObject[key].userId);
@@ -455,6 +511,10 @@ module.exports = (Plugin, Library) => {
     }
 
     ///-----Voice Announcements-----///
+    /**
+     *
+     * @returns {Array<VoiceData>}
+     */
     getAllVoices() {
       const allVoices = [
         ...localVoices,
@@ -463,8 +523,17 @@ module.exports = (Plugin, Library) => {
       return allVoices;
     }
 
+    /**
+     *
+     * @param {string?} overrideVoiceId
+     * @returns {VoiceData}
+     */
     getSelectedSpeakerVoice(overrideVoiceId) {
       const allVoices = this.getAllVoices();
+
+      /**
+       * @type {string}
+       */
       const selectedVoiceId =
         overrideVoiceId ?? this.settings.audioSettings.speakerVoice;
 
@@ -489,6 +558,12 @@ module.exports = (Plugin, Library) => {
       return voiceWithSelectedId[0];
     }
 
+    /**
+     *
+     * @param {VOICE_ANNOUNCEMENT} src
+     * @param {string} overrideVoiceId
+     * @returns
+     */
     playAudioClip(src, overrideVoiceId) {
       // Logger.log(
       //   this.getSelectedSpeakerVoice(overrideVoiceId).audioClips[src.name]
@@ -508,6 +583,10 @@ module.exports = (Plugin, Library) => {
       audioPlayer.play().then(() => audioPlayer.remove());
     }
 
+    /**
+     * Method that dictates whether any announcement should be played based on user settings.
+     * @returns {boolean}
+     */
     shouldMakeSound() {
       return !(
         this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
@@ -551,6 +630,11 @@ module.exports = (Plugin, Library) => {
       Data.save('stockSoundsManipulated', false);
     }
 
+    /**
+     *
+     * @param {string} voiceAnnouncementName
+     * @returns
+     */
     restoreSingleStockDisSounds(voiceAnnouncementName) {
       if (!(Data.load('stockSoundsManipulated') ?? false)) return;
 

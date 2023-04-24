@@ -336,7 +336,6 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
   const { ContextMenu, Data, Webpack } = BdApi;
 
   const { Logger, DiscordModules } = Library;
-
   const DisStreamerModeStore = DiscordModules.StreamerModeStore;
   const DisMediaInfo = DiscordModules.MediaInfo;
   const DisSelectedChannelStore = DiscordModules.SelectedChannelStore;
@@ -491,10 +490,21 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
         this.getIsJoinedLeftAnnouncementDisabled.bind(this);
     }
 
+    /**
+     *
+     * @param {string} userId
+     * @param {boolean} value
+     * @returns
+     */
     setIsMarkUserAsBot(userId, value) {
       Data.save(`isUserMarkedAsBotById-${userId}`, value);
     }
 
+    /**
+     *
+     * @param {string} userId
+     * @returns {boolean}
+     */
     getIsUserABot(userId) {
       const overriddenMarkedValue = Data.load(
         `isUserMarkedAsBotById-${userId}`
@@ -511,10 +521,21 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
       return autoDetectedIsBot ?? false;
     }
 
+    /**
+     *
+     * @param {string} userId
+     * @param {boolean} value
+     * @returns
+     */
     setIsJoinedLeftAnnouncementDisabled(userId, value) {
       Data.save(`isJoinedLeftAnnouncementDisabledById-${userId}`, value);
     }
 
+    /**
+     *
+     * @param {string} userId
+     * @returns {boolean}
+     */
     getIsJoinedLeftAnnouncementDisabled(userId) {
       const overriddenValue = Data.load(
         `isJoinedLeftAnnouncementDisabledById-${userId}`
@@ -586,12 +607,18 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     ///-----Misc-----///
+    /**
+     * @returns {Array<string>}
+     */
     getCurrentVoiceChannelUsersIds() {
       const voiceStatesForCurrentVoiceChannelObject =
         DisVoiceStateStore.getVoiceStatesForChannel(
           DisSelectedChannelStore.getVoiceChannelId()
         );
 
+      /**
+       * @type {Array<string>}
+       */
       const currentVoiceChannelUsersIds = Object.keys(
         voiceStatesForCurrentVoiceChannelObject
       ).map((key) => voiceStatesForCurrentVoiceChannelObject[key].userId);
@@ -813,6 +840,10 @@ module.exports = !global.ZeresPluginLibrary ? Dummy : (([Plugin, Api]) => {
     }
 
     ///-----Voice Announcements-----///
+    /**
+     *
+     * @returns {Array<VoiceData>}
+     */
     getAllVoices() {
       const allVoices = [
         ...localVoices,
