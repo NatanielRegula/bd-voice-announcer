@@ -28,6 +28,24 @@
  * }} VoiceData
  */
 
+/**
+ * @typedef {{
+ * channelId: string|null
+ * deaf: boolean
+ * guildId: string
+ * mute: boolean
+ * oldChannelId: string | undefined
+ * requestToSpeakTimestamp: number | null
+ * selfDeaf: boolean
+ * selfMute: boolean
+ * selfStream: boolean
+ * selfVideo: boolean
+ * sessionId: string
+ * suppress: boolean
+ * userId: string
+ * }} DisVoiceState
+ */
+
 module.exports = (Plugin, Library) => {
   const BdApi = new window.BdApi('VoiceAnnouncer');
   const { ContextMenu, Data, Webpack } = BdApi;
@@ -37,7 +55,11 @@ module.exports = (Plugin, Library) => {
   const DisMediaInfo = DiscordModules.MediaInfo;
   const DisSelectedChannelStore = DiscordModules.SelectedChannelStore;
   const DisUserStore = DiscordModules.UserStore;
+  // const DisUserStore = DiscordModules.UserStore;
 
+  const DisSelectedGuildStore = Webpack.getModule(
+    Webpack.Filters.byProps('getGuildId', 'getLastSelectedGuildId')
+  );
   const Dispatcher = Webpack.getModule(
     Webpack.Filters.byProps('dispatch', 'subscribe')
   );
@@ -130,10 +152,11 @@ module.exports = (Plugin, Library) => {
         this.checkMuteStatusListenerHandler.bind(this);
       this.checkDeafenedStatusListenerHandler =
         this.checkDeafenedStatusListenerHandler.bind(this);
-      this.channelSwitchedListenerHandler =
-        this.channelSwitchedListenerHandler.bind(this);
+
       this.voiceChannelUpdateListenerHandler =
         this.voiceChannelUpdateListenerHandler.bind(this);
+
+      this.voiceStateUpdateHandler = this.voiceStateUpdateHandler.bind(this);
 
       ///-----Event Listeners Subscriptions-----///
       this.setUpListeners = this.setUpListeners.bind(this);
@@ -141,8 +164,13 @@ module.exports = (Plugin, Library) => {
       this.disEventListenerPairs = [
         ['AUDIO_TOGGLE_SELF_MUTE', this.checkMuteStatusListenerHandler],
         ['AUDIO_TOGGLE_SELF_DEAF', this.checkDeafenedStatusListenerHandler],
-        ['VOICE_CHANNEL_SELECT', this.channelSwitchedListenerHandler],
         ['VOICE_STATE_UPDATES', this.voiceChannelUpdateListenerHandler],
+        ['VOICE_STATE_UPDATES', this.voiceStateUpdateHandler],
+
+        //maybe a better replacement for VOICE_CHANNEL_SELECT
+        // ['MEDIA_SESSION_JOINED', this.checkTestStatusListenerHandler],
+
+        // ['REMOTE_SESSION_DISCONNECT', this.checkTestStatusListenerHandler],
 
         // ['SPEAKING', this.checkTestStatusListenerHandler],
         // ['CHANNEL_UPDATES', this.checkTestStatusListenerHandler],
@@ -167,6 +195,7 @@ module.exports = (Plugin, Library) => {
         this.getCurrentVoiceChannelUsersIds.bind(this);
       this.refreshCurrentVoiceChannelUsersIdsCache =
         this.refreshCurrentVoiceChannelUsersIdsCache.bind(this);
+
       //stock sounds
       this.disableStockDisSounds = this.disableStockDisSounds.bind(this);
       this.restoreStockDisSounds = this.restoreStockDisSounds.bind(this);
@@ -382,55 +411,69 @@ module.exports = (Plugin, Library) => {
       }
     }
 
-    channelSwitchedListenerHandler(e) {
+    async voiceStateUpdateHandler(e) {
       if (!this.shouldMakeSound()) return;
 
-      const eventVoiceChannelId = e.channelId;
+      // Logger.info('voiceStateUpdateHandler event fired');
+      // Logger.info(e);
 
-      //if this is true it means that channel wasn't changed
-      if (eventVoiceChannelId == this.cachedVoiceChannelId) return;
+      /**
+       * @type {DisVoiceState}
+       */
+      const voiceState = e.voiceStates[0];
 
-      if (eventVoiceChannelId == null) {
-        //this means we have disconnected from voice channel
-        //there could be an announcement made for this.
-        this.playAudioClip(VOICE_ANNOUNCEMENT.DISCONNECTED);
+      // this isn't an update to current user
+      // Logger.info(`not our user(${this.cachedCurrentUserId})`);
+      if (voiceState.userId != this.cachedCurrentUserId) return;
 
-        this.refreshCurrentVoiceChannelUsersIdsCache();
-        this.cachedVoiceChannelId = eventVoiceChannelId;
-        return;
-      }
+      // channel didn't change
+      if (voiceState.channelId == this.cachedVoiceChannelId) return;
 
-      if (this.cachedVoiceChannelId == null) {
-        //this means we have connected to a voice channel for the first time
-        //so there could be a "connected" announcement
+      // this timeout in combination with DisSelectedGuildStore.getGuildId() later makes sure that VOICE_ANNOUNCEMENT.CHANNEL_SWITCHED
+      // is called when changing to a voice channel in a different guild
+      // if not for this the announcer would say disconnected and connected at the same time instead.
+      await new Promise((r) => setTimeout(r, 10));
 
-        this.playAudioClip(VOICE_ANNOUNCEMENT.CONNECTED);
-        this.refreshCurrentVoiceChannelUsersIdsCache();
-        this.cachedVoiceChannelId = eventVoiceChannelId;
-        return;
-      }
-
-      this.cachedVoiceChannelId = eventVoiceChannelId;
       this.refreshCurrentVoiceChannelUsersIdsCache();
-      this.playAudioClip(VOICE_ANNOUNCEMENT.CHANNEL_SWITCHED);
+
+      if (voiceState.channelId == null) {
+        //this check prevents the disconnected announcement being made when changing to a voice channel in a different guild
+        if (DisSelectedGuildStore.getGuildId() != voiceState.guildId) return;
+
+        //disconnected
+        this.playAudioClip(VOICE_ANNOUNCEMENT.DISCONNECTED);
+        this.cachedVoiceChannelId = voiceState.channelId;
+
+        return;
+      }
+
+      if (
+        voiceState.oldChannelId != null ||
+        this.cachedVoiceChannelId != null
+      ) {
+        //channel switched
+        this.playAudioClip(VOICE_ANNOUNCEMENT.CHANNEL_SWITCHED);
+        this.cachedVoiceChannelId = voiceState.channelId;
+
+        return;
+      }
+
+      if (voiceState.oldChannelId == null) {
+        //this check prevents the connected announcement being made when changing to a voice channel in a different guild
+        if (DisSelectedGuildStore.getGuildId() != voiceState.guildId) return;
+
+        //connected
+        this.playAudioClip(VOICE_ANNOUNCEMENT.CONNECTED);
+        this.cachedVoiceChannelId = voiceState.channelId;
+
+        return;
+      }
     }
 
     checkTestStatusListenerHandler(e) {
       // if (!this.shouldMakeSound()) return;
       Logger.info('test event fired');
       Logger.info(e);
-      // if (
-      //   this.settings.audioSettings.respectDisableAllSoundsStreamerMode &&
-      //   DiscordModules.StreamerModeStore.getSettings().enabled &&
-      //   DiscordModules.StreamerModeStore.getSettings().disableSounds
-      // ) {
-      //   return;
-      // }
-      // if (DisMediaInfo.isSelfMute()) {
-      //   this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.muted);
-      // } else {
-      //   this.playAudioClip(this.getSelectedSpeakerVoice().audioClips.unmuted);
-      // }
     }
 
     checkMuteStatusListenerHandler() {

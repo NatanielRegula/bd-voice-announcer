@@ -5,7 +5,7 @@
     "author": "NR",
     "authorId": "",
     "authorLink": "",
-    "version": "0.0.17",
+    "version": "0.0.18",
     "description": "Replaces many audio notifications with voice announcements, for actions like mute, unmute, connect, disconnect, etc.",
     "website": "",
     "source": "https://github.com/NatanielRegula/bd-voice-announcer",
@@ -13,6 +13,13 @@
     "donate": "paypal.me/NatanielRegula",
     "invite": "",
     "changelog": [
+        {
+            "title": "0.0.18",
+            "type": "fixed",
+            "items": [
+                "Rewritten the code responsible for \"connected\", \"disconnected\" and \"channel switched\" announcements, this fixes a few bugs notably one where no announcement would be played when a used gets disconnected from a voice channel by someone else (eg. an admin). It also improves the performance of above mentioned announcements."
+            ]
+        },
         {
             "title": "0.0.17",
             "type": "improved",

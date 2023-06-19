@@ -2,7 +2,23 @@
 
 ## What does it do?
 
-When the user switches between muted and unmuted the plugin will announce the currently set mode via audio notification.
+This plugin replaces the stock sounds made by Dis... with voice announcements similar to TS3.
+
+The announced actions available are as follows:
+
+- connected **(voice channel or a call)**
+- disconnected **(voice channel or a call)**
+- channel switched **(voice channel)**
+- user joined your channel **(voice channel or a call)**
+- user left your channel **(voice channel or a call)**
+- a bot joined your channel **(voice channel)**
+- a bot left your channel **(voice channel)**
+- muted
+- unmuted
+- deafened
+- undeafened
+
+You can also customize the plugin behavior, for example, specific announcements can be switched on and off in the plugin settings at will.
 
 ## Prerequisites
 
